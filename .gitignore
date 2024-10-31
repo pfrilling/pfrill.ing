@@ -40,3 +40,5 @@
 # Private files directory.
 /private
 !/private/.gitkeep
+
+.idea
