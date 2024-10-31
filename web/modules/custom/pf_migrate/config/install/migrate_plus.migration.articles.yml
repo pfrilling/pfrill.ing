@@ -1,0 +1,95 @@
+id: articles
+migration_group: phil_frilling
+migration_tags:
+  - nodes
+label: 'Articles'
+
+source:
+  plugin: articles
+  key: legacydb
+  high_water_property:
+    name: changed
+
+destination:
+  plugin: 'entity:node'
+
+process:
+  type:
+    plugin: default_value
+    default_value: article
+  title: title
+  nid: nid
+  'body/value': body_value
+  'body/summary': body_summary
+  'body/format': body_format
+
+  created: created
+  changed: changed
+  promoted: promoted
+  sticky: sticky
+  status: status
+
+  uid:
+    - plugin: migration_lookup
+      migration: users
+      source: uid
+      no_stub: true
+    - plugin: default_value
+      default_value: 1
+
+  field_tags:
+    - plugin: skip_on_empty
+      source: field_tags_list
+      method: process
+      message: 'Row does not contain field_tags_list.'
+    - plugin: explode
+      delimiter: ','
+    - plugin: callback
+      callable: trim
+    - plugin: migration_lookup
+      migration: tags
+
+  field_client_tags:
+    - plugin: skip_on_empty
+      source: field_client_tags_list
+      method: process
+      message: 'Row does not contain field_client_tags_list.'
+    - plugin: explode
+      delimiter: ','
+    - plugin: callback
+      callable: trim
+    - plugin: migration_lookup
+      migration: client_tags
+
+  field_resources:
+    - plugin: skip_on_empty
+      source: field_resources_target_id_list
+      method: process
+      message: 'Row does not contain field_resources_target_id_list.'
+    - plugin: explode
+      delimiter: ','
+    - plugin: callback
+      callable: trim
+    - plugin: migration_lookup
+      migration: files
+
+  'field_image/target_id':
+    - plugin: migration_lookup
+      migration: files
+      source: field_header_image_target_id
+
+  'field_image/alt': field_header_image_alt
+  'field_image/title': field_header_image_title
+  'field_image/width': field_header_image_width
+  'field_image/height': field_header_image_height
+
+migration_dependencies:
+  required:
+    - users
+    - tags
+    - client_tags
+    - files
+
+dependencies:
+  module:
+    - pf_migrate

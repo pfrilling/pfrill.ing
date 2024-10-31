@@ -1,0 +1,29 @@
+id: users
+migration_group: phil_frilling
+migration_tags: {}
+label: 'User accounts'
+
+source:
+  plugin: users
+  key: legacydb
+  high_water_property:
+    name: access
+
+destination:
+  plugin: 'entity:user'
+
+process:
+  uid: uid
+  name: name
+  pass: pass
+  mail: mail
+  init: init
+  status: status
+  created: created
+  access: access
+  login: login
+  timezone: timezone
+
+dependencies:
+  module:
+    - pf_migrate

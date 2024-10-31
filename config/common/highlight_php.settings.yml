@@ -1,0 +1,5 @@
+_core:
+  default_config_hash: m0P8H3Mtf-Ewoqw41wk0l-j--__nEaQiHIrH4AXmUes
+mode: auto
+auto_languages: 'html php javascript css twig yaml go protobuf sql bash'
+manual_regex: 'language-([a-zA-Z1-9]*)'

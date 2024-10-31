@@ -1,0 +1,38 @@
+id: tags
+migration_group: phil_frilling
+migration_tags: {}
+label: 'Taxonomy - Tags'
+
+source:
+  plugin: tags
+  key: legacydb
+  high_water_property:
+    name: changed
+
+destination:
+  plugin: 'entity:taxonomy_term'
+
+process:
+  type:
+    plugin: default_value
+    default_value: tags
+  name: name
+  tid: tid
+  uuid: uuid
+  langcode: langcode
+  weight: weight
+  changed: changed
+  default_langcode: default_langcode
+  status: status
+  revision_translation_affected: revision_translation_affected
+  vid:
+    plugin: default_value
+    default_value: tags
+  'description/value': description__value
+  'description/format':
+    plugin: default_value
+    default_value: full_html
+
+dependencies:
+  module:
+    - pf_migrate

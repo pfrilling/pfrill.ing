@@ -1,0 +1,10 @@
+name: Migrate Philfrilling.com
+description: Provides migration plugins to get philfrilling.com from D8 into D10 and Layout Builder
+package: Other
+
+type: module
+core_version_requirement: ^9.0 || ^10
+
+dependencies:
+  - drupal:migrate_plus
+  - drupal:migrate_tools

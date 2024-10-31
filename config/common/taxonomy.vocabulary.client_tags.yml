@@ -1,0 +1,9 @@
+uuid: 129512c2-a281-4872-bafc-42ea8fec5657
+langcode: en
+status: true
+dependencies: {  }
+name: 'Client tags'
+vid: client_tags
+description: null
+weight: 0
+new_revision: false

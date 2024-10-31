@@ -1,0 +1,37 @@
+uuid: 2d9b078f-a7fc-408c-bbaf-742db2e09415
+langcode: en
+status: true
+dependencies:
+  module:
+    - pf_migrate
+id: taxonomy_redirects
+class: null
+field_plugin_method: null
+cck_plugin_method: null
+migration_tags:
+  - taxonomy_terms
+migration_group: phil_frilling
+label: 'Taxonomy redirects'
+source:
+  plugin: url_redirects
+  key: legacydb
+  query_type: taxonomy
+  entity_type: taxonomy_term
+process:
+  type:
+    plugin: default_value
+    default_value: redirect
+  status_code:
+    plugin: default_value
+    default_value: 301
+  uid:
+    plugin: default_value
+    default_value: 1
+  language: langcode
+  redirect_source: alias
+  redirect_redirect: destination_source_alias
+destination:
+  plugin: 'entity:redirect'
+migration_dependencies:
+  required:
+    - articles

@@ -1,0 +1,8 @@
+uuid: dee1f0be-d620-45da-aaab-bf497bf626f6
+langcode: en
+status: true
+dependencies: {  }
+id: code
+label: Code
+revision: true
+description: 'Create a code snippet.'

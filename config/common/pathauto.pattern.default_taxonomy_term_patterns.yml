@@ -1,0 +1,22 @@
+uuid: 720964ed-959f-4fab-b2a7-dce6889d8580
+langcode: en
+status: true
+dependencies:
+  module:
+    - taxonomy
+id: default_taxonomy_term_patterns
+label: 'Default taxonomy term patterns'
+type: 'canonical_entities:taxonomy_term'
+pattern: 'tags/[term:name]'
+selection_criteria:
+  c126909f-38e7-43af-b62a-13083ffb89d7:
+    id: 'entity_bundle:taxonomy_term'
+    negate: false
+    uuid: c126909f-38e7-43af-b62a-13083ffb89d7
+    context_mapping:
+      taxonomy_term: taxonomy_term
+    bundles:
+      tags: tags
+selection_logic: and
+weight: -5
+relationships: {  }

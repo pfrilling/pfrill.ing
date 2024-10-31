@@ -1,0 +1,40 @@
+id: files
+migration_group: phil_frilling
+migration_tags: {}
+label: 'Files'
+
+source:
+  plugin: files
+  key: legacydb
+  high_water_property:
+    name: changed
+
+destination:
+  plugin: 'entity:file'
+
+process:
+  fid: fid
+  uuid: uuid
+  langcode: langcode
+  filename: filename
+  uri: uri
+  filemime: filemime
+  filesize: filesize
+  created: created
+  changed: changed
+  status: status
+  uid:
+    - plugin: migration_lookup
+      migration: users
+      source: uid
+      no_stub: true
+    - plugin: default_value
+      default_value: 1
+
+migration_dependencies:
+  required:
+    - users
+
+dependencies:
+  module:
+    - pf_migrate

@@ -1,0 +1,38 @@
+id: node_redirects
+migration_group: phil_frilling
+migration_tags:
+  - nodes
+label: 'Node redirects'
+
+source:
+  plugin: url_redirects
+  key: legacydb
+  query_type: node
+  entity_type: node
+
+destination:
+  plugin: 'entity:redirect'
+
+process:
+  type:
+    plugin: default_value
+    default_value: redirect
+  status_code:
+    plugin: default_value
+    default_value: 301
+
+  uid:
+    plugin: default_value
+    default_value: 1
+
+  language: langcode
+  redirect_source: alias
+  redirect_redirect: destination_source_alias
+
+migration_dependencies:
+  required:
+    - articles
+
+dependencies:
+  module:
+    - pf_migrate

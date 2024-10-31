@@ -1,0 +1,22 @@
+uuid: ea9cff8f-7321-43b7-bf1b-c73a35d35ab9
+langcode: en
+status: true
+dependencies:
+  module:
+    - taxonomy
+id: default_client_tags_path
+label: 'Default client tags path'
+type: 'canonical_entities:taxonomy_term'
+pattern: '/client-tags/[term:name]'
+selection_criteria:
+  d62f6747-ffbd-4826-bbb5-36aa68a72096:
+    id: 'entity_bundle:taxonomy_term'
+    negate: false
+    uuid: d62f6747-ffbd-4826-bbb5-36aa68a72096
+    context_mapping:
+      taxonomy_term: taxonomy_term
+    bundles:
+      client_tags: client_tags
+selection_logic: and
+weight: -5
+relationships: {  }
