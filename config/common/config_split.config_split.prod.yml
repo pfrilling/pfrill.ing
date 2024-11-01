@@ -1,0 +1,17 @@
+uuid: b134b47a-d5f0-4790-ac3a-9181647129fb
+langcode: en
+status: false
+dependencies: {  }
+id: prod
+label: Prod
+description: ''
+weight: 1
+stackable: false
+no_patching: false
+storage: folder
+folder: ../config/prod
+module:
+  umami_analytics: 0
+theme: {  }
+complete_list: {  }
+partial_list: {  }

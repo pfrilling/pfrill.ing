@@ -1,0 +1,22 @@
+_core:
+  default_config_hash: _t4SDg8-MRfDCkRRB8YGy1EWX5GnkZasM1xZi4hpI4M
+src: ''
+website_id: ''
+host_url: ''
+auto_track: true
+do_not_track: false
+cache: false
+domain_mode: 0
+domains: ''
+visibility:
+  request_path_mode: 0
+  request_path_pages: |-
+    /admin
+    /admin/*
+    /batch
+    /node/add*
+    /node/*/*
+    /user/*/*
+  user_role_mode: 0
+  user_role_roles: {  }
+local_cache: false
