@@ -920,7 +920,7 @@ if (getenv('IS_DDEV_PROJECT') == 'true' && is_readable($ddev_settings)) {
 
   // Files directory paths.
   $settings['file_public_path'] = 'sites/default/files';
-  $settings['file_private_path'] = 'sites/default/files/private';
+  $settings['file_private_path'] = '../private';
   $settings['file_temp_path'] = $settings['file_private_path'] . '/tmp';
   $settings['config_sync_directory'] = '../config/common';
 
