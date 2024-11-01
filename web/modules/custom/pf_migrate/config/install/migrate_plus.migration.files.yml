@@ -13,7 +13,7 @@ destination:
   plugin: 'entity:file'
 
 process:
-  fid: fid
+#  fid: fid
   uuid: uuid
   langcode: langcode
   filename: filename

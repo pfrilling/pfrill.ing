@@ -21,7 +21,6 @@ process:
     plugin: default_value
     default_value: tags
   name: name
-  tid: tid
   uuid: uuid
   langcode: langcode
   weight: weight

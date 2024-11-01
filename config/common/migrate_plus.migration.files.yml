@@ -17,7 +17,6 @@ source:
   high_water_property:
     name: changed
 process:
-  fid: fid
   uuid: uuid
   langcode: langcode
   filename: filename

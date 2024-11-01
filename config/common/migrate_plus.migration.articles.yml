@@ -22,7 +22,6 @@ process:
     plugin: default_value
     default_value: article
   title: title
-  nid: nid
   body/value: body_value
   body/summary: body_summary
   body/format: body_format

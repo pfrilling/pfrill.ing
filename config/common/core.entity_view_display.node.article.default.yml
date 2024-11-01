@@ -31,25 +31,6 @@ third_party_settings:
         layout_settings:
           label: ''
         components:
-          3f37e90e-8e8f-4b38-9f01-92585d760c18:
-            uuid: 3f37e90e-8e8f-4b38-9f01-92585d760c18
-            region: content
-            configuration:
-              id: 'field_block:node:article:field_image'
-              label_display: '0'
-              context_mapping:
-                entity: layout_builder.entity
-              formatter:
-                type: image
-                label: hidden
-                settings:
-                  image_link: ''
-                  image_style: large
-                  image_loading:
-                    attribute: lazy
-                third_party_settings: {  }
-            weight: 0
-            additional: {  }
           5ec914e7-f766-45ed-b5fb-c951a2faebb0:
             uuid: 5ec914e7-f766-45ed-b5fb-c951a2faebb0
             region: content
@@ -126,70 +107,22 @@ third_party_settings:
             additional: {  }
         third_party_settings: {  }
       -
-        layout_id: layout_twocol_section
+        layout_id: layout_onecol
         layout_settings:
-          label: 'Author Information'
+          label: Tags
           context_mapping: {  }
-          column_widths: 67-33
         components:
-          33301350-b9fa-4fb4-ab1e-44749fff2aea:
-            uuid: 33301350-b9fa-4fb4-ab1e-44749fff2aea
-            region: first
-            configuration:
-              id: 'field_block:node:article:uid'
-              label: 'Authored by'
-              label_display: '0'
-              provider: layout_builder
-              context_mapping:
-                entity: layout_builder.entity
-                view_mode: view_mode
-              formatter:
-                type: entity_reference_entity_view
-                label: above
-                settings:
-                  view_mode: compact
-                third_party_settings: {  }
-            weight: 0
-            additional: {  }
-          ecc91c1f-30e4-4f26-83a3-674c70544027:
-            uuid: ecc91c1f-30e4-4f26-83a3-674c70544027
-            region: first
-            configuration:
-              id: 'field_block:node:article:created'
-              label: 'Authored on'
-              label_display: '0'
-              provider: layout_builder
-              context_mapping:
-                entity: layout_builder.entity
-                view_mode: view_mode
-              formatter:
-                type: timestamp
-                label: above
-                settings:
-                  date_format: medium
-                  custom_date_format: ''
-                  timezone: ''
-                  tooltip:
-                    date_format: long
-                    custom_date_format: ''
-                  time_diff:
-                    enabled: false
-                    future_format: '@interval hence'
-                    past_format: '@interval ago'
-                    granularity: 2
-                    refresh: 60
-                    description: ''
-                third_party_settings: {  }
-            weight: 1
-            additional: {  }
-          25b4b9f4-57d2-475b-9070-50ae90640809:
-            uuid: 25b4b9f4-57d2-475b-9070-50ae90640809
-            region: second
+          bf527cf2-b0b7-4b65-a196-6bab1a71b5fd:
+            uuid: bf527cf2-b0b7-4b65-a196-6bab1a71b5fd
+            region: content
             configuration:
               id: 'field_block:node:article:field_tags'
+              label: Tags
               label_display: '0'
+              provider: layout_builder
               context_mapping:
                 entity: layout_builder.entity
+                view_mode: view_mode
               formatter:
                 type: entity_reference_label
                 label: above

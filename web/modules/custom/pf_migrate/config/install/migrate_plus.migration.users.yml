@@ -13,7 +13,7 @@ destination:
   plugin: 'entity:user'
 
 process:
-  uid: uid
+#  uid: uid
   name: name
   pass: pass
   mail: mail

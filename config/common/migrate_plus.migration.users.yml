@@ -17,7 +17,6 @@ source:
   high_water_property:
     name: access
 process:
-  uid: uid
   name: name
   pass: pass
   mail: mail
