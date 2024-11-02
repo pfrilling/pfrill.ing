@@ -15,7 +15,9 @@ $settings['config_sync_directory'] = '../config/sync';
 
 // Configure the database.
 if ($platformsh->hasRelationship('mariadb')) {
+  var_dump('hello');
   $creds = $platformsh->credentials('mariadb');
+  var_dump($creds);
   $databases['default']['default'] = [
     'driver' => $creds['scheme'],
     'database' => $creds['path'],
