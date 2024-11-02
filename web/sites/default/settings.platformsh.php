@@ -9,6 +9,11 @@ use Drupal\Core\Installer\InstallerKernel;
 
 $platformsh = new \Platformsh\ConfigReader\Config();
 
+// Guard the environment.
+if (!$platformsh->isValidPlatform()) {
+  return;
+}
+
 // Configure the database.
 if ($platformsh->hasRelationship('mariadb')) {
   $creds = $platformsh->credentials('mariadb');
@@ -164,4 +169,22 @@ foreach ($platformsh->variables() as $name => $value) {
       }
       break;
   }
+}
+
+// Configure the config split per environment.
+switch ($platformsh->branch) {
+  case 'main':
+    // Production.
+    $config['config_split.config_split.prod']['status'] = TRUE;
+    break;
+
+  case 'uat':
+    // UAT.
+    $config['config_split.config_split.uat']['status'] = TRUE;
+    break;
+
+  default:
+    // Dev.
+    $config['config_split.config_split.dev']['status'] = TRUE;
+    break;
 }
