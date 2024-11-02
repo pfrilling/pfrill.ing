@@ -118,7 +118,12 @@ applications:
 
     # Scheduled tasks for the app.
     # More information: https://docs.upsun.com/create-apps/app-reference.html#crons
-    # crons:
+    crons:
+      # Run Drupal's cron tasks every 3 hours.
+      pfrill-ing:
+        spec: '0 */3 * * *'
+        commands:
+          start: 'cd web ; ../vendor/bin/drush core-cron'
 
     # Customizations to your PHP or Lisp runtime. More information: https://docs.upsun.com/create-apps/app-reference.html#runtime
     # runtime:
@@ -158,8 +163,6 @@ applications:
 services:
   mariadb:
     type: mariadb:11.0 # All available versions are: 11.0, 10.11, 10.6, 10.5, 10.4, 10.3
-
-
 
 # The routes of the project.
 #
