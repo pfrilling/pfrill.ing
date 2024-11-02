@@ -31,7 +31,8 @@
         "drupal/redirect": "^1.10",
         "drupal/token": "^1.15",
         "drupal/umami_analytics": "^1.0.0-alpha2",
-        "drush/drush": "^13.3"
+        "drush/drush": "^13.3",
+        "platformsh/config-reader": "^2.4"
     },
     "conflict": {
         "drupal/drupal": "*"

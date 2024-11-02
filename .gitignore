@@ -10,8 +10,7 @@
 !/web/sites/default
 /web/sites/default/*
 !/web/sites/default/settings.php
-
-/config/**/.htaccess
+!/web/sites/default/settings.platformsh.php
 
 # Drush
 /drush/contrib
