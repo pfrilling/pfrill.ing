@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Platform.sh settings.
@@ -8,14 +9,10 @@ use Drupal\Core\Installer\InstallerKernel;
 
 $platformsh = new \Platformsh\ConfigReader\Config();
 
-
 // Configure the database.
 if ($platformsh->hasRelationship('mariadb')) {
-  var_dump('hello');
   $creds = $platformsh->credentials('mariadb');
-  var_dump($creds);
 
-  var_dump(getenv('DB_HOST'));
   $databases['default']['default'] = [
     'driver' => $creds['scheme'],
     'database' => $creds['path'],
