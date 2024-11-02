@@ -10,6 +10,7 @@
 !/web/sites/default
 /web/sites/default/*
 !/web/sites/default/settings.php
+!/web/sites/default/settings.platformsh.php
 
 /config/**/.htaccess
 
