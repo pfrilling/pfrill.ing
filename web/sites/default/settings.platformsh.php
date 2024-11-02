@@ -8,16 +8,14 @@ use Drupal\Core\Installer\InstallerKernel;
 
 $platformsh = new \Platformsh\ConfigReader\Config();
 
-// Set up a config sync directory.
-//
-// This is defined inside the read-only "config" directory, deployed via Git.
-$settings['config_sync_directory'] = '../config/sync';
 
 // Configure the database.
 if ($platformsh->hasRelationship('mariadb')) {
   var_dump('hello');
   $creds = $platformsh->credentials('mariadb');
   var_dump($creds);
+
+  var_dump(getenv('DB_HOST'));
   $databases['default']['default'] = [
     'driver' => $creds['scheme'],
     'database' => $creds['path'],
