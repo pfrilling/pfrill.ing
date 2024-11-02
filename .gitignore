@@ -12,8 +12,6 @@
 !/web/sites/default/settings.php
 !/web/sites/default/settings.platformsh.php
 
-/config/**/.htaccess
-
 # Drush
 /drush/contrib
 
