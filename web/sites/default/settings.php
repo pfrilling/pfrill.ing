@@ -785,6 +785,7 @@ $settings['container_yamls'][] = $app_root . '/' . $site_path . '/services.yml';
  */
 $settings['file_scan_ignore_directories'] = [
   'node_modules'
+  'bower_components',
 ];
 
 /**
@@ -912,6 +913,9 @@ $settings['file_public_path'] = 'sites/default/files';
 // Private files directory path. Uncomment this and set for hosting environment.
 // $settings['file_private_path'] = 'sites/default/files/private';
 
+// @see https://www.drupal.org/node/3177901
+$settings['state_cache'] = TRUE;
+
 // Automatically generated include for settings managed by ddev.
 $ddev_settings = dirname(__FILE__) . '/settings.ddev.php';
 if (getenv('IS_DDEV_PROJECT') == 'true' && is_readable($ddev_settings)) {
@@ -956,6 +960,12 @@ if (getenv('GITHUB_ACTIONS')) {
 $redis_settings = dirname(__FILE__) . '/settings.redis.php';
 if (file_exists($redis_settings)) {
   require $redis_settings;
+}
+
+// Automatic Platform.sh settings.
+$platformsh_settings = dirname(__FILE__) . '/settings.platformsh.php';
+if (file_exists($platformsh_settings)) {
+  require $platformsh_settings;
 }
 
 /**
