@@ -1,6 +1,6 @@
 _core:
   default_config_hash: _t4SDg8-MRfDCkRRB8YGy1EWX5GnkZasM1xZi4hpI4M
-src: 'https://pfrill.ing/umami.js'
+src: 'https://cloud.umami.is/script.js'
 website_id: 'REDACTED'
 host_url: ''
 auto_track: true
