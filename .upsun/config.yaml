@@ -185,3 +185,11 @@ routes:
   "https://www.{default}":
     type: redirect
     to: "https://{default}/"
+
+  "https://{all}":
+    type: redirect
+    to: "https://{default}/"
+
+  "https://www.{all}":
+    type: redirect
+    to: "https://{default}/"
