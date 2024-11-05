@@ -57,28 +57,15 @@ class UrlRedirects extends SqlBase {
       $this->entityType = $configuration['entity_type'];
     }
 
-    if (!empty($configuration['query_type'])) {
-      $this->queryType = $configuration['query_type'];
-    }
-
     $this->entityStorage = \Drupal::entityTypeManager()->getStorage($this->entityType);
   }
 
   /**
-   * {@inheritDoc}
+   * {@inheritdoc}
    */
   public function query(): SelectInterface {
-    $fields = $this->getJoinedTables();
-
-    $query = $this->select('url_alias', 'url_alias');
-
-    foreach ($fields as $table => $tableFields) {
-      $query->fields($table, array_keys($tableFields));
-    }
-
-    $query->condition('url_alias.source', "/{$query->escapeLike($this->queryType)}%", 'LIKE');
-
-    $query->orderBy('url_alias.pid');
+    $query = $this->select('url_alias')
+      ->fields('url_alias', array_keys($this->fields()));
 
     return $query;
   }
@@ -87,35 +74,14 @@ class UrlRedirects extends SqlBase {
    * {@inheritDoc}
    */
   public function fields(): array {
-    $baseFields = $this->getJoinedTables();
-
-    $fields = [];
-
-    foreach ($baseFields as $table => $tableFields) {
-      $fields = array_merge($fields, $tableFields);
-    }
-
-    $fields['computed_entity_id'] = $this->t('The entity id parsed from the source uri');
-    $fields['destination_source_alias'] = $this->t('The alias of the Drupal 9 entity');
-
-    return $fields;
-  }
-
-  /**
-   * Get the joined tables.
-   *
-   * @return array
-   *   Associative array of fields keyed by table.
-   */
-  private function getJoinedTables(): array {
-    $fields['url_alias'] = [
-      'pid' => $this->t('Path ID'),
-      'source' => $this->t('Source path'),
-      'alias' => $this->t('Alias path'),
-      'langcode' => $this->t('Langcode'),
+    return [
+      'pid' => $this->t('The alias id'),
+      'source' => $this->t('The source entity'),
+      'alias' => $this->t('The alias for the entity'),
+      'langcode' => $this->t('The language code'),
     ];
-    return $fields;
   }
+
 
   /**
    * Get the ids for the migration.
@@ -134,38 +100,17 @@ class UrlRedirects extends SqlBase {
    * {@inheritDoc}
    */
   public function prepareRow(Row $row) {
-    parent::prepareRow($row);
+    $parent = parent::prepareRow($row);
+    $row->setSourceProperty('entity_id', NULL);
 
-    $originalAlias = $row->getSourceProperty('alias');
-    $row->setSourceProperty('alias', ltrim($originalAlias, '/'));
+    $source = $row->getSourceProperty('source');
+    $parts = array_filter(explode('/', $source));
+    $entityId = (int) array_pop($parts);
 
-    $sourceUrl = $row->getSourceProperty('source');
+    $row->setSourceProperty('entity_id', $entityId);
+    //$row->setSourceProperty('entity_type', $entityType);
 
-    $sourceParts = explode('/', ltrim($sourceUrl, '/'));
-
-    $entityId = array_pop($sourceParts);
-    $type = array_shift($sourceParts);
-
-    if (!is_numeric($entityId)) {
-      return FALSE;
-    }
-
-    if ($type !== $this->queryType) {
-      return FALSE;
-    }
-
-    /** @var EntityInterface $entity */
-    $entity = $this->entityStorage->load($entityId);
-
-    if (empty($entity)) {
-      return FALSE;
-    }
-
-    if ($originalAlias === $entity->toUrl()->toString()) {
-      return FALSE;
-    }
-
-    $row->setSourceProperty('destination_source_alias', "entity:{$entity->getEntityTypeId()}/{$entity->id()}");
+    return $parent;
   }
 
 }
