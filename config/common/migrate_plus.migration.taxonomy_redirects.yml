@@ -15,23 +15,38 @@ label: 'Taxonomy redirects'
 source:
   plugin: url_redirects
   key: legacydb
-  query_type: taxonomy
-  entity_type: taxonomy_term
+  constants:
+    slash: /
+    INTERNAL: 'internal:'
+    REDIRECT_CODE: '301'
+    ENTITY_TYPE: taxonomy/term
 process:
-  type:
-    plugin: default_value
-    default_value: redirect
-  status_code:
-    plugin: default_value
-    default_value: 301
-  uid:
-    plugin: default_value
-    default_value: 1
-  language: langcode
-  redirect_source: alias
-  redirect_redirect: destination_source_alias
+  new_nid:
+    -
+      plugin: migration_lookup
+      migration:
+        - tags
+        - client_tags
+      source:
+        - entity_id
+      no_stub: true
+    -
+      plugin: skip_on_empty
+      method: row
+  redirect_source/path: alias
+  redirect_redirect/uri:
+    plugin: concat
+    source:
+      - constants/INTERNAL
+      - constants/slash
+      - constants/ENTITY_TYPE
+      - constants/slash
+      - '@new_nid'
+  langcode: langcode
+  status_code: constants/REDIRECT_CODE
 destination:
   plugin: 'entity:redirect'
 migration_dependencies:
   required:
-    - articles
+    - tags
+    - client_tags

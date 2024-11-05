@@ -7,27 +7,37 @@ label: 'Node redirects'
 source:
   plugin: url_redirects
   key: legacydb
-  query_type: node
-  entity_type: node
+  constants:
+    slash: '/'
+    INTERNAL: 'internal:'
+    REDIRECT_CODE: '301'
+    ENTITY_TYPE: 'node'
 
 destination:
   plugin: 'entity:redirect'
 
 process:
-  type:
-    plugin: default_value
-    default_value: redirect
-  status_code:
-    plugin: default_value
-    default_value: 301
+  new_nid:
+    - plugin: migration_lookup
+      migration:
+        - articles
+      source:
+        - entity_id
+      no_stub: true
+    - plugin: skip_on_empty
+      method: row
 
-  uid:
-    plugin: default_value
-    default_value: 1
-
-  language: langcode
-  redirect_source: alias
-  redirect_redirect: destination_source_alias
+  redirect_source/path: alias
+  redirect_redirect/uri:
+    plugin: concat
+    source:
+      - constants/INTERNAL
+      - constants/slash
+      - constants/ENTITY_TYPE
+      - constants/slash
+      - '@new_nid'
+  langcode: langcode
+  status_code: constants/REDIRECT_CODE
 
 migration_dependencies:
   required:
