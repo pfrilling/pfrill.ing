@@ -11,6 +11,7 @@ no_patching: false
 storage: folder
 folder: ../config/prod
 module:
+  syslog: 0
   umami_analytics: 0
 theme: {  }
 complete_list: {  }
