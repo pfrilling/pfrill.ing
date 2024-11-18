@@ -18,7 +18,7 @@
         "php": ">=8.2",
         "composer/installers": "^2.0",
         "drupal/admin_toolbar": "^3.5",
-        "drupal/coffee": "^1.4",
+        "drupal/coffee": "^2.0",
         "drupal/config_split": "^2.0",
         "drupal/core-composer-scaffold": "^10.3",
         "drupal/core-project-message": "^10.3",
