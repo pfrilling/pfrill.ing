@@ -55,6 +55,13 @@ applications:
         "/":
           passthru: "/index.php"
           root: "web"
+          rules:
+            '^/sites/default/files/css/*.css':
+              expires: 2w
+            '^/sites/default/files/js/*.js':
+              expires: 2w
+            '^/sites/default/files/styles':
+              expires: 52w
 
 
 
