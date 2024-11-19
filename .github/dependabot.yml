@@ -12,9 +12,6 @@ updates:
         patterns:
           - "drupal/core"
           - "drupal/core-composer-scaffold"
+          - "drupal/core-project-message"
           - "drupal/core-recommended"
           - "drupal/core-dev"
-#  - package-ecosystem: "github-actions"
-#    directory: "/"
-#    schedule:
-#      interval: "weekly"
