@@ -33,7 +33,7 @@
         "drupal/token": "^1.15",
         "drupal/umami_analytics": "^1.0.0-alpha2",
         "drush/drush": "^13.3",
-        "platformsh/config-reader": "^2.4"
+        "platformsh/config-reader": "^3.0"
     },
     "conflict": {
         "drupal/drupal": "*"
