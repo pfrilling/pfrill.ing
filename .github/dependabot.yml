@@ -10,6 +10,7 @@ updates:
       - dependency-name: "drupal/core*"
         update-types: ["version-update:semver-major"]
     groups:
+      # Group Drupal Core together.
       drupal-core:
         patterns:
           - "drupal/core"
