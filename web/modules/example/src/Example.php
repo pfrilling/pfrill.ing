@@ -2,7 +2,7 @@
 
 namespace Drupal\bad_example;
 
-class BadService {
+class Example {
 
   public function __construct()
   {
