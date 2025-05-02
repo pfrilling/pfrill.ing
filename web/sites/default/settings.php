@@ -945,15 +945,15 @@ if (getenv('IS_DDEV_PROJECT') == 'true' && is_readable($ddev_settings)) {
 }
 
 if (getenv('GITHUB_ACTIONS')) {
-  $databases['default']['default'] = [
-    'database' => 'drupal',
-    'username' => 'drupal',
-    'password' => 'drupal',
-    'host' => '127.0.0.1',
-    'port' => '3306',
-    'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
-    'driver' => 'mysql',
-  ];
+//  $databases['default']['default'] = [
+//    'database' => 'drupal',
+//    'username' => 'drupal',
+//    'password' => 'drupal',
+//    'host' => '127.0.0.1',
+//    'port' => '3306',
+//    'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
+//    'driver' => 'mysql',
+//  ];
 }
 
 // Include the Redis settings file if available.

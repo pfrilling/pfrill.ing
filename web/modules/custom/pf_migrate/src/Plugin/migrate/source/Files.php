@@ -32,6 +32,7 @@ class Files extends SqlBase {
    * {@inheritdoc}
    */
   public function query(): SelectInterface {
+    
     $fields = $this->getJoinedTables();
     $query = $this->select('file_managed');
 
