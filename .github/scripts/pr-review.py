@@ -189,7 +189,7 @@ Review this code and respond with ONLY a JSON array of found issues. For each is
 - explanation of the issue
 - concrete code suggestion for improvement
 
-Format EXACTLY like this JSON array, with no other text:
+Format EXACTLY like this JSON array, with no other text, being sure to escape the strings properyly:
 
 [
     {{
