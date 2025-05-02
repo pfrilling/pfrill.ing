@@ -183,8 +183,6 @@ Pay special attention to:
 - Ensure PHPDoc and inline comments are useful and up to date.
 - Ensure proper use of cache tags and cache contexts when working with render arrays.
 - Ensure no use of |raw or |render filters in twig templates.
-- Ensure that if a javascript or css file changes that a version number is incremented in the corresponding libraries.yml file.
-- If a large code block is commented out or uncommented, be sure to ask if it is necessary.
 
 Review this code and respond with ONLY a JSON array of found issues. For each issue include:
 - line number
