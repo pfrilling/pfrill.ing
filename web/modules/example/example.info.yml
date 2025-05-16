@@ -1,0 +1,6 @@
+name: 'Bad Example'
+type: module
+description: 'A module with intentionally poor practices to test automated code review.'
+core_version_requirement: ^10 || ^9
+package: Custom
+version: 1.0
