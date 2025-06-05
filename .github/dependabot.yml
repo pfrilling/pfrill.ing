@@ -2,8 +2,6 @@ version: 2
 updates:
   - package-ecosystem: "composer"
     directory: "/"
-    reviewers:
-      - "pfrilling"
     schedule:
       interval: "weekly"
     ignore:
