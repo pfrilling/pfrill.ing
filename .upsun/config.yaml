@@ -120,8 +120,11 @@ applications:
       deploy: |
         set -eux
         # echo 'Run drush deploy'
-        cd web; ../vendor/bin/drush deploy --yes
-
+        #cd web; ../vendor/bin/drush deploy --yes
+        cd web; ../vendor/bin/drush updatedb --no-cache-clear --yes
+        cd web; ../vendor/bin/drush cache:rebuild --yes
+        cd web; ../vendor/bin/drush deploy:hook --yes
+        cd web; ../vendor/bin/drush recipe ./recipes/essentials --yes
 
 
       # The post_deploy hook is run after the app container has been started and after it has started accepting requests.

@@ -1,0 +1,7 @@
+name: 'Content Model'
+description: 'Installs all content types for pfrill.ing'
+type: 'Content model recipe'
+recipes:
+  - article_content_type
+  - landing_page_content_type
+  - page_content_type

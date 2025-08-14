@@ -1,0 +1,8 @@
+name: 'Essential site configuration'
+description: 'Installs the essentials for pfrill.ing'
+type: 'Essentials recipe'
+recipes:
+  - content_model
+  - user_roles
+  - performance
+#  - umami_analtics

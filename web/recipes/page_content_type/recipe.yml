@@ -1,0 +1,125 @@
+name: 'Page'
+description: 'A basic page content type with body field for static content.'
+type: 'Content type recipe'
+install:
+  - text
+  - node
+config:
+  strict:
+    # Treat field storages strictly, since they influence the database layout.
+    - field.storage.node.body
+  import:
+    node:
+      - core.entity_view_mode.node.full
+      - core.entity_view_mode.node.teaser
+      - system.action.node_delete_action
+      - system.action.node_make_sticky_action
+      - system.action.node_make_unsticky_action
+      - system.action.node_promote_action
+      - system.action.node_publish_action
+      - system.action.node_save_action
+      - system.action.node_unpromote_action
+      - system.action.node_unpublish_action
+  actions:
+    core.entity_form_display.node.page.default:
+      createIfNotExists:
+        targetEntityType: node
+        bundle: page
+        mode: default
+        status: true
+      setComponents:
+        - name: title
+          options:
+            type: string_textfield
+            weight: -5
+            region: content
+            settings:
+              size: 60
+              placeholder: ''
+        - name: uid
+          options:
+            type: entity_reference_autocomplete
+            weight: 5
+            region: content
+            settings:
+              match_operator: CONTAINS
+              match_limit: 10
+              size: 60
+              placeholder: ''
+        - name: created
+          options:
+            type: datetime_timestamp
+            weight: 10
+            region: content
+        - name: promote
+          options:
+            type: boolean_checkbox
+            weight: 15
+            region: content
+            settings:
+              display_label: true
+        - name: sticky
+          options:
+            type: boolean_checkbox
+            weight: 16
+            region: content
+            settings:
+              display_label: true
+        - name: path
+          options:
+            type: path
+            weight: 30
+            region: content
+        - name: body
+          options:
+            type: text_textarea_with_summary
+            weight: 31
+            region: content
+            settings:
+              rows: 9
+              summary_rows: 3
+              placeholder: ''
+              show_summary: false
+        - name: status
+          options:
+            type: boolean_checkbox
+            weight: 120
+            region: content
+            settings:
+              display_label: true
+    core.entity_view_display.node.page.default:
+      createIfNotExists:
+        targetEntityType: node
+        bundle: page
+        mode: default
+        status: true
+      setComponents:
+        - name: body
+          options:
+            type: text_default
+            label: hidden
+            weight: 100
+            region: content
+        - name: links
+          options:
+            weight: 101
+            region: content
+    core.entity_view_display.node.page.teaser:
+      createIfNotExists:
+        targetEntityType: node
+        bundle: page
+        mode: teaser
+        status: true
+      setComponents:
+        - name: body
+          options:
+            type: text_summary_or_trimmed
+            label: hidden
+            weight: 100
+            region: content
+            settings:
+              trim_length: 600
+        - name: links
+          options:
+            weight: 101
+            region: content
