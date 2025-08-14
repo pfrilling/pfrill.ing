@@ -43,34 +43,11 @@ jobs:
           cache: 'npm'
           cache-dependency-path: tests/playwright/package-lock.json
 
-      - name: Install Upsun CLI
-        run: |
-          set -euxo pipefail
-          # Try to download the latest PHAR release of the Upsun CLI
-          curl -fsSL -o upsun.phar https://github.com/upsun/cli/releases/latest/download/upsun.phar
-          sudo install -m 0755 upsun.phar /usr/local/bin/upsun
-          upsun --version
-
-      - name: Authenticate Upsun CLI
-        env:
-          UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
-        run: |
-          set -euxo pipefail
-          if [ -z "${UPSUN_API_TOKEN:-}" ]; then
-            echo "Missing UPSUN_API_TOKEN secret" >&2
-            exit 1
-          fi
-          # Login using API token (non-interactive)
-          upsun auth:login --api-token "$UPSUN_API_TOKEN"
-
-      - name: Set project
-        run: |
-          set -euxo pipefail
-          if [ -z "${UPSUN_PROJECT_ID:-}" ]; then
-            echo "Missing UPSUN_PROJECT_ID secret" >&2
-            exit 1
-          fi
-          upsun project:set "$UPSUN_PROJECT_ID"
+      - name: Setup Upsun CLI
+        uses: upsun/action-cli@v1
+        with:
+          api-token: ${{ secrets.UPSUN_API_TOKEN }}
+          project: ${{ secrets.UPSUN_PROJECT_ID }}
 
       - name: Create or update feature environment
         id: env
@@ -136,17 +113,11 @@ jobs:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
       UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
     steps:
-      - name: Install Upsun CLI
-        run: |
-          set -euxo pipefail
-          curl -fsSL -o upsun.phar https://github.com/upsun/cli/releases/latest/download/upsun.phar
-          sudo install -m 0755 upsun.phar /usr/local/bin/upsun
-
-      - name: Authenticate and set project
-        run: |
-          set -euxo pipefail
-          upsun auth:login --api-token "$UPSUN_API_TOKEN"
-          upsun project:set "$UPSUN_PROJECT_ID"
+      - name: Setup Upsun CLI
+        uses: upsun/action-cli@v1
+        with:
+          api-token: ${{ secrets.UPSUN_API_TOKEN }}
+          project: ${{ secrets.UPSUN_PROJECT_ID }}
 
       - name: Delete feature environment
         env:
