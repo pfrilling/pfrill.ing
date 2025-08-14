@@ -1,0 +1,159 @@
+name: Upsun feature environment E2E
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upsun-e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  upsun-deploy-and-test:
+    name: Provision feature env and run Playwright
+    runs-on: ubuntu-latest
+    env:
+      UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
+      UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+      # Default parent environment to branch from (adjust if your default branch differs)
+      UPSUN_PARENT_ENV: ${{ vars.UPSUN_PARENT_ENV || 'main' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine environment name
+        id: names
+        run: |
+          if [ -n "${{ github.event.pull_request.number }}" ]; then
+            ENV_NAME="pr-${{ github.event.pull_request.number }}"
+          else
+            # Fallback to sanitized ref name if manually triggered
+            ENV_NAME="feat-${GITHUB_REF_NAME//\//-}"
+          fi
+          echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: tests/playwright/package-lock.json
+
+      - name: Install Upsun CLI
+        run: |
+          set -euxo pipefail
+          # Try to download the latest PHAR release of the Upsun CLI
+          curl -fsSL -o upsun.phar https://github.com/upsun/cli/releases/latest/download/upsun.phar
+          sudo install -m 0755 upsun.phar /usr/local/bin/upsun
+          upsun --version
+
+      - name: Authenticate Upsun CLI
+        env:
+          UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+        run: |
+          set -euxo pipefail
+          if [ -z "${UPSUN_API_TOKEN:-}" ]; then
+            echo "Missing UPSUN_API_TOKEN secret" >&2
+            exit 1
+          fi
+          # Login using API token (non-interactive)
+          upsun auth:login --api-token "$UPSUN_API_TOKEN"
+
+      - name: Set project
+        run: |
+          set -euxo pipefail
+          if [ -z "${UPSUN_PROJECT_ID:-}" ]; then
+            echo "Missing UPSUN_PROJECT_ID secret" >&2
+            exit 1
+          fi
+          upsun project:set "$UPSUN_PROJECT_ID"
+
+      - name: Create or update feature environment
+        id: env
+        env:
+          ENV_NAME: ${{ steps.names.outputs.env_name }}
+          UPSUN_PARENT_ENV: ${{ env.UPSUN_PARENT_ENV }}
+        run: |
+          set -euxo pipefail
+          # Ensure parent exists and is active (noop if already active)
+          upsun environment:activate --yes --environment "$UPSUN_PARENT_ENV" || true
+
+          # Create branch if it doesn't exist
+          if ! upsun environment:info --environment "$ENV_NAME" >/dev/null 2>&1; then
+            upsun environment:branch "$ENV_NAME" --parent "$UPSUN_PARENT_ENV" --yes
+          fi
+
+          # Activate environment (will build & deploy latest)
+          upsun environment:activate --yes --environment "$ENV_NAME"
+
+          # Wait for the environment to be reachable and get its primary URL
+          # The CLI usually provides a simple way to get the URL; try primary URL with --pipe
+          PRIMARY_URL=$(upsun url --primary --pipe --environment "$ENV_NAME")
+          # Fallback: extract the first URL from environment info if the above fails
+          if [ -z "$PRIMARY_URL" ]; then
+            PRIMARY_URL=$(upsun environment:info --environment "$ENV_NAME" --property=urls --format=plain | head -n1 | awk '{print $1}')
+          fi
+
+          echo "base_url=$PRIMARY_URL" >> "$GITHUB_OUTPUT"
+          echo "Resolved environment URL: $PRIMARY_URL"
+
+      - name: Install Playwright dependencies
+        working-directory: tests/playwright
+        run: |
+          set -euxo pipefail
+          npm ci
+          npx playwright install --with-deps
+
+      - name: Run Playwright tests against feature env
+        working-directory: tests/playwright
+        env:
+          BASE_URL: ${{ steps.env.outputs.base_url }}
+        run: |
+          set -euxo pipefail
+          echo "Testing against $BASE_URL"
+          npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            tests/playwright/playwright-report
+            tests/playwright/test-results
+          if-no-files-found: ignore
+
+  # Optional cleanup job that runs when PR is closed to remove the ephemeral env
+  cleanup-env:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    needs: [upsun-deploy-and-test]
+    env:
+      UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
+      UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+    steps:
+      - name: Install Upsun CLI
+        run: |
+          set -euxo pipefail
+          curl -fsSL -o upsun.phar https://github.com/upsun/cli/releases/latest/download/upsun.phar
+          sudo install -m 0755 upsun.phar /usr/local/bin/upsun
+
+      - name: Authenticate and set project
+        run: |
+          set -euxo pipefail
+          upsun auth:login --api-token "$UPSUN_API_TOKEN"
+          upsun project:set "$UPSUN_PROJECT_ID"
+
+      - name: Delete feature environment
+        env:
+          ENV_NAME: pr-${{ github.event.pull_request.number }}
+        run: |
+          set -euxo pipefail
+          # Delete the environment if it exists
+          if upsun environment:info --environment "$ENV_NAME" >/dev/null 2>&1; then
+            upsun environment:delete --yes --environment "$ENV_NAME"
+          fi
