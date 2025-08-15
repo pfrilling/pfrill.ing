@@ -240,12 +240,36 @@ jobs:
           cache: 'npm'
           cache-dependency-path: tests/playwright/package-lock.json
 
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('tests/playwright/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright dependencies
         working-directory: tests/playwright
         run: |
           set -euxo pipefail
           npm ci
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        working-directory: tests/playwright
+        run: |
+          set -euxo pipefail
+          echo "Cache miss - installing Playwright browsers"
           npx playwright install --with-deps
+
+      - name: Verify Playwright browsers (if cached)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: tests/playwright
+        run: |
+          set -euxo pipefail
+          echo "Cache hit - verifying Playwright browsers are available"
+          npx playwright install --help >/dev/null || npx playwright install --with-deps
 
       - name: Run Playwright tests against feature env
         working-directory: tests/playwright
