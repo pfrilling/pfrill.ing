@@ -1,4 +1,4 @@
-name: Upsun feature environment E2E
+name: Upsun feature environment E2E (Alternative)
 
 on:
   pull_request:
@@ -9,12 +9,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: upsun-e2e-${{ github.workflow }}-${{ github.ref }}
+  group: upsun-e2e-alt-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   upsun-deploy-and-test:
-    name: Provision feature env and run Playwright
+    name: Provision feature env and run Playwright (Official Action)
     runs-on: ubuntu-latest
     env:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
@@ -38,64 +38,20 @@ jobs:
           echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
           echo "Using environment name: $ENV_NAME"
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Upsun CLI
+        uses: upsun/action-cli@v1
         with:
-          node-version: 24
-          cache: 'npm'
-          cache-dependency-path: tests/playwright/package-lock.json
-
-      - name: Install and authenticate Upsun CLI
-        env:
-          UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
-        run: |
-          set -euxo pipefail
-          # Install via official installer
-          curl -fsSL https://raw.githubusercontent.com/platformsh/cli/main/installer.sh | VENDOR=upsun bash
-
-          # Ensure the installer-provided bin directory is on PATH
-          if [ -d "$HOME/.platformsh/bin" ]; then
-            echo "$HOME/.platformsh/bin" >> "$GITHUB_PATH"
-          fi
-          if [ -d "$HOME/.local/bin" ]; then
-            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          fi
-
-          # Verify installation
-          if command -v upsun >/dev/null 2>&1; then
-            upsun --version
-            echo "✅ Upsun CLI installed successfully"
-          else
-            echo "❌ Upsun CLI not found after installer" >&2
-            exit 1
-          fi
-
-          # Authenticate using API token
-          echo "Authenticating with API token..."
-          if upsun auth:api-token-login --no-interaction; then
-            echo "✅ API token authentication successful"
-          else
-            echo "❌ Failed to authenticate with API token. Please check UPSUN_API_TOKEN secret." >&2
-            exit 1
-          fi
-
-          # Verify authentication is working
-          echo "Verifying authentication..."
-          if upsun auth:info --no-interaction; then
-            echo "✅ Authentication verified successfully"
-          else
-            echo "❌ Authentication verification failed." >&2
-            exit 1
-          fi
+          cli_provider: 'upsun'
+          cli_token: ${{ secrets.UPSUN_API_TOKEN }}
+          project_id: ${{ secrets.UPSUN_PROJECT_ID }}
 
       - name: Create/activate Upsun environment and resolve URL
         id: upsun
         env:
           ENV_NAME: ${{ steps.names.outputs.env_name }}
-          UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
         run: |
           set -euxo pipefail
-
+          
           echo "Working with environment: $ENV_NAME"
           echo "Project ID: $UPSUN_PROJECT_ID"
           echo "Parent environment: $UPSUN_PARENT_ENV"
@@ -103,7 +59,7 @@ jobs:
           # Check if environment already exists
           if upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" >/dev/null 2>&1; then
             echo "Environment $ENV_NAME already exists. Checking if it's active..."
-
+            
             # Check if environment is active
             ENV_STATUS=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --property=status --format=plain)
             if [ "$ENV_STATUS" != "active" ]; then
@@ -118,18 +74,19 @@ jobs:
             upsun environment:activate --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV" --no-wait --environment="$ENV_NAME" --resources-init=minimum
           fi
 
-          # Wait a bit more to ensure the environment is fully accessible
-          sleep 30
+          # Wait for environment to be ready
+          echo "Waiting for environment to be ready..."
+          upsun environment:wait --project "$UPSUN_PROJECT_ID" --environment "$ENV_NAME"
 
           # Get the primary URL - try different approaches
           echo "Resolving environment URL..."
           PRIMARY_URL=""
-
+          
           # Try to get URLs from environment info
           if PRIMARY_URL=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --property=urls --format=plain | head -n1 | awk '{print $1}' 2>/dev/null); then
             echo "Found URL via property lookup: $PRIMARY_URL"
           fi
-
+          
           # Fallback: try to get URL from environment:url command
           if [ -z "$PRIMARY_URL" ]; then
             if PRIMARY_URL=$(upsun environment:url --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --pipe 2>/dev/null | head -n1); then
@@ -153,28 +110,35 @@ jobs:
         run: |
           set -euxo pipefail
           echo "Verifying environment accessibility at $BASE_URL"
-
+          
           # Wait for environment to respond with retries
           MAX_ATTEMPTS=30
           ATTEMPT=1
-
+          
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Testing $BASE_URL"
-
+            
             if curl -sI --max-time 10 --connect-timeout 5 "$BASE_URL" | head -n1 | grep -q "HTTP/[12].[01] [23][0-9][0-9]"; then
               echo "✅ Environment is responding successfully"
               break
             fi
-
+            
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
               echo "❌ Environment failed to respond after $MAX_ATTEMPTS attempts"
               exit 1
             fi
-
+            
             echo "Environment not yet ready, waiting 10 seconds..."
             sleep 10
             ATTEMPT=$((ATTEMPT + 1))
           done
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: tests/playwright/package-lock.json
 
       - name: Install Playwright dependencies
         working-directory: tests/playwright
@@ -215,57 +179,20 @@ jobs:
       UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
       UPSUN_CLI_NO_INTERACTION: 1
     steps:
-      - name: Install and authenticate Upsun CLI
-        env:
-          UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
-        run: |
-          set -euxo pipefail
-          # Install via official installer
-          curl -fsSL https://raw.githubusercontent.com/platformsh/cli/main/installer.sh | VENDOR=upsun bash
-
-          # Ensure the installer-provided bin directory is on PATH
-          if [ -d "$HOME/.platformsh/bin" ]; then
-            echo "$HOME/.platformsh/bin" >> "$GITHUB_PATH"
-          fi
-          if [ -d "$HOME/.local/bin" ]; then
-            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          fi
-
-          # Verify installation
-          if command -v upsun >/dev/null 2>&1; then
-            upsun --version
-            echo "✅ Upsun CLI installed successfully"
-          else
-            echo "❌ Upsun CLI not found after installer" >&2
-            exit 1
-          fi
-
-          # Authenticate using API token
-          echo "Authenticating with API token..."
-          if upsun auth:api-token-login --no-interaction; then
-            echo "✅ API token authentication successful"
-          else
-            echo "❌ Failed to authenticate with API token. Please check UPSUN_API_TOKEN secret." >&2
-            exit 1
-          fi
-
-          # Verify authentication is working
-          echo "Verifying authentication..."
-          if upsun auth:info --no-interaction; then
-            echo "✅ Authentication verified successfully"
-          else
-            echo "❌ Authentication verification failed." >&2
-            exit 1
-          fi
+      - name: Setup Upsun CLI
+        uses: upsun/action-cli@v1
+        with:
+          cli_provider: 'upsun'
+          cli_token: ${{ secrets.UPSUN_API_TOKEN }}
+          project_id: ${{ secrets.UPSUN_PROJECT_ID }}
 
       - name: Delete feature environment
         env:
           ENV_NAME: ${{ github.head_ref || github.ref_name }}
-          UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
         run: |
           set -euxo pipefail
           echo "Attempting to clean up environment: $ENV_NAME"
-
+          
           # Delete the environment if it exists
           if upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" >/dev/null 2>&1; then
             echo "Environment $ENV_NAME exists. Deleting..."
