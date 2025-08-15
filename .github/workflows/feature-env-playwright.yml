@@ -19,8 +19,6 @@ jobs:
     env:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
       UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
-      PLATFORMSH_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
-      PLATFORMSH_CLI_NO_INTERACTION: 1
       UPSUN_CLI_NO_INTERACTION: 1
       # Default parent environment to branch from (adjust if your default branch differs)
       UPSUN_PARENT_ENV: ${{ vars.UPSUN_PARENT_ENV || 'main' }}
@@ -47,18 +45,37 @@ jobs:
           cache: 'npm'
           cache-dependency-path: tests/playwright/package-lock.json
 
-      - name: Install Upsun CLI
+      - name: Install and authenticate Upsun CLI
+        env:
+          UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
         run: |
           set -euxo pipefail
           # Install via official installer
           curl -fsSL https://raw.githubusercontent.com/platformsh/cli/main/installer.sh | VENDOR=upsun bash
 
+          # Ensure the installer-provided bin directory is on PATH
+          if [ -d "$HOME/.platformsh/bin" ]; then
+            echo "$HOME/.platformsh/bin" >> "$GITHUB_PATH"
+          fi
+          if [ -d "$HOME/.local/bin" ]; then
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          fi
+
           # Verify installation
           if command -v upsun >/dev/null 2>&1; then
             upsun --version
+            echo "✅ Upsun CLI installed successfully"
           else
-            echo "Upsun CLI not found after installer" >&2
-            command -v upsun >/dev/null 2>&1 && upsun --version || true
+            echo "❌ Upsun CLI not found after installer" >&2
+            exit 1
+          fi
+
+          # Verify authentication using API token (UPSUN_CLI_TOKEN env var)
+          echo "Verifying API token authentication..."
+          if upsun auth:info --no-interaction; then
+            echo "✅ Authentication successful"
+          else
+            echo "❌ Authentication failed. Please check UPSUN_API_TOKEN secret." >&2
             exit 1
           fi
 
@@ -187,17 +204,17 @@ jobs:
     env:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
       UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
-      PLATFORMSH_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
-      PLATFORMSH_CLI_NO_INTERACTION: 1
       UPSUN_CLI_NO_INTERACTION: 1
     steps:
-      - name: Install Upsun CLI
+      - name: Install and authenticate Upsun CLI
+        env:
+          UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
         run: |
           set -euxo pipefail
           # Install via official installer
-          curl -fsSL https://raw.githubusercontent.com/platformsh/cli/main/installer.sh | bash
+          curl -fsSL https://raw.githubusercontent.com/platformsh/cli/main/installer.sh | VENDOR=upsun bash
 
-          # Ensure the installer-provided bin directory is on PATH for this job
+          # Ensure the installer-provided bin directory is on PATH
           if [ -d "$HOME/.platformsh/bin" ]; then
             echo "$HOME/.platformsh/bin" >> "$GITHUB_PATH"
           fi
@@ -205,21 +222,21 @@ jobs:
             echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           fi
 
-          # If 'upsun' is not present but 'platform' is, create a compatibility symlink
-          if ! command -v upsun >/dev/null 2>&1; then
-            if command -v platform >/dev/null 2>&1; then
-              mkdir -p "$HOME/.local/bin"
-              ln -sf "$(command -v platform)" "$HOME/.local/bin/upsun"
-              echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-            fi
-          fi
-
           # Verify installation
           if command -v upsun >/dev/null 2>&1; then
             upsun --version
+            echo "✅ Upsun CLI installed successfully"
           else
-            echo "Upsun CLI not found after installer" >&2
-            command -v platform >/dev/null 2>&1 && platform --version || true
+            echo "❌ Upsun CLI not found after installer" >&2
+            exit 1
+          fi
+
+          # Verify authentication using API token (UPSUN_CLI_TOKEN env var)
+          echo "Verifying API token authentication..."
+          if upsun auth:info --no-interaction; then
+            echo "✅ Authentication successful"
+          else
+            echo "❌ Authentication failed. Please check UPSUN_API_TOKEN secret." >&2
             exit 1
           fi
 
