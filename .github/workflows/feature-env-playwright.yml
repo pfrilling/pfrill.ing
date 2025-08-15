@@ -41,8 +41,8 @@ jobs:
       - name: Setup Upsun CLI
         uses: upsun/action-cli@v1
         with:
-          api-token: ${{ secrets.UPSUN_API_TOKEN }}
-          project: ${{ secrets.UPSUN_PROJECT_ID }}
+          cli_token: ${{ secrets.UPSUN_API_TOKEN }}
+          project_id: ${{ secrets.UPSUN_PROJECT_ID }}
 
       - name: Create or update feature environment
         id: env
