@@ -38,30 +38,41 @@ jobs:
           cache: 'npm'
           cache-dependency-path: tests/playwright/package-lock.json
 
-      - name: Setup Upsun CLI
+      - name: Install Upsun CLI
+        run: |
+          set -euxo pipefail
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64|amd64) SUFFIX="linux-amd64" ;;
+            aarch64|arm64) SUFFIX="linux-arm64" ;;
+            *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+          esac
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL -o "$HOME/.local/bin/upsun" "https://github.com/upsun/cli/releases/latest/download/upsun-${SUFFIX}"
+          chmod +x "$HOME/.local/bin/upsun"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          upsun --version
+
+      - name: Activate Upsun environment and resolve URL
         id: upsun
-        uses: upsun/action-cli@v1
         env:
           ENV_NAME: ${{ steps.names.outputs.env_name }}
-        with:
-          cli_token: ${{ secrets.UPSUN_API_TOKEN }}
-          project_id: ${{ secrets.UPSUN_PROJECT_ID }}
-          command: |
-            set -euxo pipefail
-            # Activate environment (will build & deploy latest)
-            upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV"
+          UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+        run: |
+          set -euxo pipefail
+          # Activate environment (will build & deploy latest)
+          upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV"
 
-            # Wait for the environment to be reachable and get its primary URL
-            # The CLI usually provides a simple way to get the URL; try primary URL with --pipe
-            # Extract primary URL from environment info (first URL listed)
-            PRIMARY_URL=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --property=urls --format=plain | awk 'NR==1{print $1}')
-            if [ -z "$PRIMARY_URL" ]; then
-              echo "Failed to resolve environment primary URL" >&2
-              exit 1
-            fi
+          # Wait for the environment to be reachable and get its primary URL
+          # Extract primary URL from environment info (first URL listed)
+          PRIMARY_URL=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --property=urls --format=plain | awk 'NR==1{print $1}')
+          if [ -z "$PRIMARY_URL" ]; then
+            echo "Failed to resolve environment primary URL" >&2
+            exit 1
+          fi
 
-            echo "base_url=$PRIMARY_URL" >> "$GITHUB_OUTPUT"
-            echo "Resolved environment URL: $PRIMARY_URL"
+          echo "base_url=$PRIMARY_URL" >> "$GITHUB_OUTPUT"
+          echo "Resolved environment URL: $PRIMARY_URL"
 
       - name: Install Playwright dependencies
         working-directory: tests/playwright
@@ -98,15 +109,25 @@ jobs:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
       UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
     steps:
-      - name: Setup Upsun CLI
-        uses: upsun/action-cli@v1
-        with:
-          cli_token: ${{ secrets.UPSUN_API_TOKEN }}
-          project_id: ${{ secrets.UPSUN_PROJECT_ID }}
+      - name: Install Upsun CLI
+        run: |
+          set -euxo pipefail
+          ARCH=$(uname -m)
+          case "$ARCH" in
+            x86_64|amd64) SUFFIX="linux-amd64" ;;
+            aarch64|arm64) SUFFIX="linux-arm64" ;;
+            *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+          esac
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL -o "$HOME/.local/bin/upsun" "https://github.com/upsun/cli/releases/latest/download/upsun-${SUFFIX}"
+          chmod +x "$HOME/.local/bin/upsun"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          upsun --version
 
       - name: Delete feature environment
         env:
           ENV_NAME: ${{ github.event.pull_request.head.ref }}
+          UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
         run: |
           set -euxo pipefail
           # Delete the environment if it exists
