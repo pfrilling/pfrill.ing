@@ -1,0 +1,114 @@
+name: Debug Upsun Authentication
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug-auth:
+    name: Debug Upsun CLI Authentication
+    runs-on: ubuntu-latest
+    env:
+      UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
+      UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+      UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+      UPSUN_CLI_NO_INTERACTION: 1
+    steps:
+      - name: Check secrets are available
+        run: |
+          echo "Checking if secrets are available (not showing values):"
+          if [ -n "$UPSUN_PROJECT_ID" ]; then
+            echo "✅ UPSUN_PROJECT_ID is set"
+          else
+            echo "❌ UPSUN_PROJECT_ID is missing"
+          fi
+          
+          if [ -n "$UPSUN_API_TOKEN" ]; then
+            echo "✅ UPSUN_API_TOKEN is set"
+            echo "Token length: ${#UPSUN_API_TOKEN}"
+            echo "Token starts with: ${UPSUN_API_TOKEN:0:8}..."
+          else
+            echo "❌ UPSUN_API_TOKEN is missing"
+          fi
+
+      - name: Install Upsun CLI (Method 1 - Manual)
+        run: |
+          set -euxo pipefail
+          echo "Installing Upsun CLI manually..."
+          curl -fsSL https://raw.githubusercontent.com/platformsh/cli/main/installer.sh | VENDOR=upsun bash
+          
+          # Add to PATH
+          if [ -d "$HOME/.platformsh/bin" ]; then
+            echo "$HOME/.platformsh/bin" >> "$GITHUB_PATH"
+          fi
+          if [ -d "$HOME/.local/bin" ]; then
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          fi
+          
+          # Check installation
+          if command -v upsun >/dev/null 2>&1; then
+            echo "✅ Upsun CLI installed: $(upsun --version)"
+          else
+            echo "❌ Upsun CLI not found"
+            exit 1
+          fi
+
+      - name: Test various authentication methods
+        run: |
+          echo "=== Testing Authentication Methods ==="
+          
+          echo "Method 1: Direct auth:api-token-login"
+          if upsun auth:api-token-login --no-interaction 2>&1; then
+            echo "✅ auth:api-token-login succeeded"
+          else
+            echo "❌ auth:api-token-login failed"
+          fi
+          
+          echo "Method 2: SSH cert load"
+          if upsun ssh-cert:load --no-interaction 2>&1; then
+            echo "✅ ssh-cert:load succeeded"
+          else
+            echo "❌ ssh-cert:load failed"
+          fi
+          
+          echo "Method 3: Check auth info"
+          if upsun auth:info --no-interaction 2>&1; then
+            echo "✅ auth:info succeeded"
+          else
+            echo "❌ auth:info failed"
+          fi
+
+      - name: Test project access
+        run: |
+          echo "=== Testing Project Access ==="
+          echo "Testing access to project: $UPSUN_PROJECT_ID"
+          
+          if upsun environments --project "$UPSUN_PROJECT_ID" --no-interaction 2>&1; then
+            echo "✅ Can list environments"
+          else
+            echo "❌ Cannot list environments"
+          fi
+
+      - name: Test with GitHub Action
+        uses: upsun/action-cli@v1
+        with:
+          cli_token: ${{ secrets.UPSUN_API_TOKEN }}
+          project_id: ${{ secrets.UPSUN_PROJECT_ID }}
+
+      - name: Test GitHub Action authentication
+        run: |
+          echo "=== Testing GitHub Action Authentication ==="
+          
+          if upsun auth:info --no-interaction 2>&1; then
+            echo "✅ GitHub Action auth successful"
+          else
+            echo "❌ GitHub Action auth failed"
+          fi
+          
+          if upsun environments --project "$UPSUN_PROJECT_ID" --no-interaction 2>&1; then
+            echo "✅ Can list environments via GitHub Action"
+          else
+            echo "❌ Cannot list environments via GitHub Action"
+          fi
