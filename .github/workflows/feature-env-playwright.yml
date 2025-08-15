@@ -39,25 +39,28 @@ jobs:
           cache-dependency-path: tests/playwright/package-lock.json
 
       - name: Setup Upsun CLI
+        id: upsun
         uses: upsun/action-cli@v1
+        env:
+          ENV_NAME: ${{ steps.names.outputs.env_name }}
         with:
-          cli_token: ${{ secrets.UPSUN_API_TOKEN }}
-          project_id: ${{ secrets.UPSUN_PROJECT_ID }}
-          command: upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV"
-#            set -euxo pipefail
-#            # Activate environment (will build & deploy latest)
-#            upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV"
-#
-#            # Wait for the environment to be reachable and get its primary URL
-#            # The CLI usually provides a simple way to get the URL; try primary URL with --pipe
-#            PRIMARY_URL=$(upsun url --primary --pipe --environment "$ENV_NAME")
-#            # Fallback: extract the first URL from environment info if the above fails
-#            if [ -z "$PRIMARY_URL" ]; then
-#            PRIMARY_URL=$(upsun environment:info --environment "$ENV_NAME" --property=urls --format=plain | head -n1 | awk '{print $1}')
-#            fi
-#
-#            echo "base_url=$PRIMARY_URL" >> "$GITHUB_OUTPUT"
-#            echo "Resolved environment URL: $PRIMARY_URL"
+          api-token: ${{ secrets.UPSUN_API_TOKEN }}
+          project: ${{ secrets.UPSUN_PROJECT_ID }}
+          command: |
+            set -euxo pipefail
+            # Activate environment (will build & deploy latest)
+            upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV"
+
+            # Wait for the environment to be reachable and get its primary URL
+            # The CLI usually provides a simple way to get the URL; try primary URL with --pipe
+            PRIMARY_URL=$(upsun url --primary --pipe --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID")
+            # Fallback: extract the first URL from environment info if the above fails
+            if [ -z "$PRIMARY_URL" ]; then
+              PRIMARY_URL=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --property=urls --format=plain | head -n1 | awk '{print $1}')
+            fi
+
+            echo "base_url=$PRIMARY_URL" >> "$GITHUB_OUTPUT"
+            echo "Resolved environment URL: $PRIMARY_URL"
 
       - name: Install Playwright dependencies
         working-directory: tests/playwright
@@ -69,7 +72,7 @@ jobs:
       - name: Run Playwright tests against feature env
         working-directory: tests/playwright
         env:
-          BASE_URL: ${{ steps.env.outputs.base_url }}
+          BASE_URL: ${{ steps.upsun.outputs.base_url }}
         run: |
           set -euxo pipefail
           echo "Testing against $BASE_URL"
@@ -102,10 +105,10 @@ jobs:
 
       - name: Delete feature environment
         env:
-          ENV_NAME: pr-${{ github.event.pull_request.number }}
+          ENV_NAME: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euxo pipefail
           # Delete the environment if it exists
-          if upsun environment:info --environment "$ENV_NAME" >/dev/null 2>&1; then
-            upsun environment:delete --yes --environment "$ENV_NAME"
+          if upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" >/dev/null 2>&1; then
+            upsun environment:delete --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID"
           fi
