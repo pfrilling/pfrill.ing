@@ -70,12 +70,21 @@ jobs:
             exit 1
           fi
 
-          # Verify authentication using API token (UPSUN_CLI_TOKEN env var)
-          echo "Verifying API token authentication..."
+          # Load SSH certificate for API token authentication
+          echo "Loading SSH certificate for API token authentication..."
+          if upsun ssh-cert:load --no-interaction; then
+            echo "✅ SSH certificate loaded successfully"
+          else
+            echo "❌ Failed to load SSH certificate. Please check UPSUN_API_TOKEN secret." >&2
+            exit 1
+          fi
+
+          # Verify authentication is working
+          echo "Verifying authentication..."
           if upsun auth:info --no-interaction; then
             echo "✅ Authentication successful"
           else
-            echo "❌ Authentication failed. Please check UPSUN_API_TOKEN secret." >&2
+            echo "❌ Authentication verification failed." >&2
             exit 1
           fi
 
@@ -231,12 +240,21 @@ jobs:
             exit 1
           fi
 
-          # Verify authentication using API token (UPSUN_CLI_TOKEN env var)
-          echo "Verifying API token authentication..."
+          # Load SSH certificate for API token authentication
+          echo "Loading SSH certificate for API token authentication..."
+          if upsun ssh-cert:load --no-interaction; then
+            echo "✅ SSH certificate loaded successfully"
+          else
+            echo "❌ Failed to load SSH certificate. Please check UPSUN_API_TOKEN secret." >&2
+            exit 1
+          fi
+
+          # Verify authentication is working
+          echo "Verifying authentication..."
           if upsun auth:info --no-interaction; then
             echo "✅ Authentication successful"
           else
-            echo "❌ Authentication failed. Please check UPSUN_API_TOKEN secret." >&2
+            echo "❌ Authentication verification failed." >&2
             exit 1
           fi
 
