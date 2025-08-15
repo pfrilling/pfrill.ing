@@ -136,8 +136,7 @@ test.describe('Search feature', () => {
       // Avoid double-waiting by disabling auto-wait on the click and explicitly waiting
       // for the load state instead.
       await Promise.all([
-        page.waitForLoadState('domcontentloaded'),
-        submitButton.click(),
+        submitButton.click({ delay: 250 }),
       ]);
     } else {
       await Promise.all([
@@ -148,14 +147,19 @@ test.describe('Search feature', () => {
 
     // Confirm results render or a "no results" message is shown (Drupal may need indexing in fresh envs)
     const results = page.locator('ol.search-results li.search-result, .search-results li');
-    const resultsCount = await results.count();
-
-    // Common Drupal messages when no results are found
     const noResultsMessage = page.locator('text=/no results|did not match any results/i');
+
+    // Wait for either results or the "no results" message to appear to avoid navigation auto-wait timeouts.
+    await Promise.race([
+      results.first().waitFor({ state: 'visible', timeout: 15000 }),
+      noResultsMessage.first().waitFor({ state: 'visible', timeout: 15000 }),
+    ]).catch(() => { /* If neither appears, proceed to counts which will fail the assertion below. */ });
+
+    const resultsCount = await results.count();
     const noResultsCount = await noResultsMessage.count();
 
     expect(
-      resultsCount,
+      resultsCount + noResultsCount,
       'Expected search results or a "no results" message for "Drupal"'
     ).toBeGreaterThan(0);
   });
