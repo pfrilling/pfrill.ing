@@ -47,6 +47,23 @@ jobs:
           # Install via official installer
           curl -fsSL https://raw.githubusercontent.com/platformsh/cli/main/installer.sh | bash
 
+          # Ensure the installer-provided bin directory is on PATH
+          if [ -d "$HOME/.platformsh/bin" ]; then
+            echo "$HOME/.platformsh/bin" >> "$GITHUB_PATH"
+          fi
+          if [ -d "$HOME/.local/bin" ]; then
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          fi
+
+          # If 'upsun' is not present but 'platform' is, create a compatibility symlink
+          if ! command -v upsun >/dev/null 2>&1; then
+            if command -v platform >/dev/null 2>&1; then
+              mkdir -p "$HOME/.local/bin"
+              ln -sf "$(command -v platform)" "$HOME/.local/bin/upsun"
+              echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+            fi
+          fi
+
           echo "Testing Upsun CLI"
           # Verify installation
           if command -v upsun >/dev/null 2>&1; then
@@ -57,26 +74,97 @@ jobs:
             exit 1
           fi
 
-      - name: Activate Upsun environment and resolve URL
+      - name: Create/activate Upsun environment and resolve URL
         id: upsun
         env:
           ENV_NAME: ${{ steps.names.outputs.env_name }}
           UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
         run: |
           set -euxo pipefail
-          # Activate environment (will build & deploy latest)
-          upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV"
+          
+          echo "Working with environment: $ENV_NAME"
+          echo "Project ID: $UPSUN_PROJECT_ID"
+          echo "Parent environment: $UPSUN_PARENT_ENV"
 
-          # Wait for the environment to be reachable and get its primary URL
-          # Extract primary URL from environment info (first URL listed)
-          PRIMARY_URL=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --property=urls --format=plain | awk 'NR==1{print $1}')
+          # Check if environment already exists
+          if upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" >/dev/null 2>&1; then
+            echo "Environment $ENV_NAME already exists. Checking if it's active..."
+            
+            # Check if environment is active
+            ENV_STATUS=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --property=status --format=plain)
+            if [ "$ENV_STATUS" != "active" ]; then
+              echo "Environment is $ENV_STATUS. Activating..."
+              upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID"
+            else
+              echo "Environment is already active."
+            fi
+          else
+            echo "Environment $ENV_NAME does not exist. Creating and activating..."
+            # Create a new environment and activate it
+            upsun environment:branch --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV" --activate --no-wait "$ENV_NAME"
+            
+            # Wait for environment to be ready
+            echo "Waiting for environment to be ready..."
+            upsun environment:wait --project "$UPSUN_PROJECT_ID" --environment "$ENV_NAME"
+          fi
+
+          # Wait a bit more to ensure the environment is fully accessible
+          sleep 30
+
+          # Get the primary URL - try different approaches
+          echo "Resolving environment URL..."
+          PRIMARY_URL=""
+          
+          # Try to get URLs from environment info
+          if PRIMARY_URL=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --property=urls --format=plain | head -n1 | awk '{print $1}' 2>/dev/null); then
+            echo "Found URL via property lookup: $PRIMARY_URL"
+          fi
+          
+          # Fallback: try to get URL from environment:url command
+          if [ -z "$PRIMARY_URL" ]; then
+            if PRIMARY_URL=$(upsun environment:url --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --pipe 2>/dev/null | head -n1); then
+              echo "Found URL via environment:url command: $PRIMARY_URL"
+            fi
+          fi
+
           if [ -z "$PRIMARY_URL" ]; then
             echo "Failed to resolve environment primary URL" >&2
+            echo "Debug: Environment info:"
+            upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" || true
             exit 1
           fi
 
           echo "base_url=$PRIMARY_URL" >> "$GITHUB_OUTPUT"
           echo "Resolved environment URL: $PRIMARY_URL"
+
+      - name: Verify environment accessibility
+        env:
+          BASE_URL: ${{ steps.upsun.outputs.base_url }}
+        run: |
+          set -euxo pipefail
+          echo "Verifying environment accessibility at $BASE_URL"
+          
+          # Wait for environment to respond with retries
+          MAX_ATTEMPTS=30
+          ATTEMPT=1
+          
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Testing $BASE_URL"
+            
+            if curl -sI --max-time 10 --connect-timeout 5 "$BASE_URL" | head -n1 | grep -q "HTTP/[12].[01] [23][0-9][0-9]"; then
+              echo "✅ Environment is responding successfully"
+              break
+            fi
+            
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "❌ Environment failed to respond after $MAX_ATTEMPTS attempts"
+              exit 1
+            fi
+            
+            echo "Environment not yet ready, waiting 10 seconds..."
+            sleep 10
+            ATTEMPT=$((ATTEMPT + 1))
+          done
 
       - name: Install Playwright dependencies
         working-directory: tests/playwright
@@ -89,9 +177,11 @@ jobs:
         working-directory: tests/playwright
         env:
           BASE_URL: ${{ steps.upsun.outputs.base_url }}
+          PLAYWRIGHT_BASE_URL: ${{ steps.upsun.outputs.base_url }}
         run: |
           set -euxo pipefail
-          echo "Testing against $BASE_URL"
+          echo "Running Playwright tests against: $BASE_URL"
+          echo "Playwright will use BASE_URL: $BASE_URL"
           npm run test:e2e
 
       - name: Upload Playwright report on failure
@@ -108,7 +198,8 @@ jobs:
   cleanup-env:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
-    needs: [upsun-deploy-and-test]
+    # Remove the needs dependency to allow cleanup even if main job fails
+    # needs: [upsun-deploy-and-test]
     env:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
       UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
@@ -154,7 +245,13 @@ jobs:
           UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
         run: |
           set -euxo pipefail
+          echo "Attempting to clean up environment: $ENV_NAME"
+          
           # Delete the environment if it exists
           if upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" >/dev/null 2>&1; then
+            echo "Environment $ENV_NAME exists. Deleting..."
             upsun environment:delete --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID"
+            echo "✅ Environment $ENV_NAME has been deleted"
+          else
+            echo "Environment $ENV_NAME does not exist or was already deleted"
           fi
