@@ -19,6 +19,9 @@ jobs:
     env:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
       UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+      PLATFORMSH_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+      PLATFORMSH_CLI_NO_INTERACTION: 1
+      UPSUN_CLI_NO_INTERACTION: 1
       # Default parent environment to branch from (adjust if your default branch differs)
       UPSUN_PARENT_ENV: ${{ vars.UPSUN_PARENT_ENV || 'main' }}
     steps:
@@ -125,6 +128,9 @@ jobs:
     env:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
       UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+      PLATFORMSH_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+      PLATFORMSH_CLI_NO_INTERACTION: 1
+      UPSUN_CLI_NO_INTERACTION: 1
     steps:
       - name: Install Upsun CLI
         run: |
