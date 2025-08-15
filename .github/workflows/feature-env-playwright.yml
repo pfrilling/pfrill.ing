@@ -31,8 +31,14 @@ jobs:
       - name: Determine environment name
         id: names
         run: |
-          ENV_NAME="${GITHUB_REF_NAME}"
+          # Use head_ref for PRs, ref_name for direct pushes to branches
+          if [ -n "${{ github.head_ref }}" ]; then
+            ENV_NAME="${{ github.head_ref }}"
+          else
+            ENV_NAME="${{ github.ref_name }}"
+          fi
           echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
+          echo "Using environment name: $ENV_NAME"
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -237,7 +243,7 @@ jobs:
 
       - name: Delete feature environment
         env:
-          ENV_NAME: ${{ github.event.pull_request.head.ref }}
+          ENV_NAME: ${{ github.head_ref || github.ref_name }}
           UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
         run: |
           set -euxo pipefail
