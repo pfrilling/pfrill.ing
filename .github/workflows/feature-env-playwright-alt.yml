@@ -56,6 +56,8 @@ jobs:
           echo "Working with environment: $ENV_NAME"
           echo "Project ID: $UPSUN_PROJECT_ID"
           echo "Parent environment: $UPSUN_PARENT_ENV"
+          
+          NEEDS_WAIT=false
 
           # Check if environment already exists
           if upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" >/dev/null 2>&1; then
@@ -66,22 +68,36 @@ jobs:
             ENV_INFO=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --format=plain)
             echo "$ENV_INFO"
             
-            # Check if environment status is active (look for "Active" in the output)
-            if echo "$ENV_INFO" | grep -q "Status.*Active"; then
+            # Check if environment status is active (look for "status active" in the output)
+            if echo "$ENV_INFO" | grep -q "status.*active"; then
               echo "Environment is already active."
-            else
-              echo "Environment is not active. Activating..."
+            elif echo "$ENV_INFO" | grep -q "status.*paused"; then
+              echo "Environment is paused. Resuming..."
               upsun environment:resume --project "$UPSUN_PROJECT_ID" --environment="$ENV_NAME" --no-wait
+              NEEDS_WAIT=true
+            elif echo "$ENV_INFO" | grep -q "status.*inactive"; then
+              echo "Environment is inactive. Activating..."
+              upsun environment:activate --project "$UPSUN_PROJECT_ID" --environment="$ENV_NAME" --no-wait
+              NEEDS_WAIT=true
+            else
+              echo "Environment status unclear. Attempting to activate..."
+              upsun environment:activate --project "$UPSUN_PROJECT_ID" --environment="$ENV_NAME" --no-wait
+              NEEDS_WAIT=true
             fi
           else
             echo "Environment $ENV_NAME does not exist. Creating and activating..."
             # Create a new environment and activate it
             upsun environment:activate --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV" --no-wait --environment="$ENV_NAME" --resources-init=minimum
+            NEEDS_WAIT=true
           fi
 
-          # Wait for environment to be ready
-          echo "Waiting for environment to be ready..."
-          upsun environment:wait --project "$UPSUN_PROJECT_ID" --environment "$ENV_NAME"
+          # Wait for environment to be ready (only if we just activated/resumed it)
+          if [ "$NEEDS_WAIT" = "true" ]; then
+            echo "Waiting for environment to be ready..."
+            upsun environment:wait --project "$UPSUN_PROJECT_ID" --environment "$ENV_NAME"
+          else
+            echo "Environment was already active, skipping wait..."
+          fi
 
           # Get the primary URL - try different approaches
           echo "Resolving environment URL..."
