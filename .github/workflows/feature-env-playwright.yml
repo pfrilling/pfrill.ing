@@ -43,21 +43,21 @@ jobs:
         with:
           cli_token: ${{ secrets.UPSUN_API_TOKEN }}
           project_id: ${{ secrets.UPSUN_PROJECT_ID }}
-          command: |
-            set -euxo pipefail
-            # Activate environment (will build & deploy latest)
-            upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV"
-
-            # Wait for the environment to be reachable and get its primary URL
-            # The CLI usually provides a simple way to get the URL; try primary URL with --pipe
-            PRIMARY_URL=$(upsun url --primary --pipe --environment "$ENV_NAME")
-            # Fallback: extract the first URL from environment info if the above fails
-            if [ -z "$PRIMARY_URL" ]; then
-            PRIMARY_URL=$(upsun environment:info --environment "$ENV_NAME" --property=urls --format=plain | head -n1 | awk '{print $1}')
-            fi
-
-            echo "base_url=$PRIMARY_URL" >> "$GITHUB_OUTPUT"
-            echo "Resolved environment URL: $PRIMARY_URL"
+          command: upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV"
+#            set -euxo pipefail
+#            # Activate environment (will build & deploy latest)
+#            upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV"
+#
+#            # Wait for the environment to be reachable and get its primary URL
+#            # The CLI usually provides a simple way to get the URL; try primary URL with --pipe
+#            PRIMARY_URL=$(upsun url --primary --pipe --environment "$ENV_NAME")
+#            # Fallback: extract the first URL from environment info if the above fails
+#            if [ -z "$PRIMARY_URL" ]; then
+#            PRIMARY_URL=$(upsun environment:info --environment "$ENV_NAME" --property=urls --format=plain | head -n1 | awk '{print $1}')
+#            fi
+#
+#            echo "base_url=$PRIMARY_URL" >> "$GITHUB_OUTPUT"
+#            echo "Resolved environment URL: $PRIMARY_URL"
 
       - name: Install Playwright dependencies
         working-directory: tests/playwright
