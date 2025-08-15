@@ -49,6 +49,7 @@ jobs:
         env:
           ENV_NAME: ${{ steps.names.outputs.env_name }}
           UPSUN_PARENT_ENV: ${{ env.UPSUN_PARENT_ENV }}
+          UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
         run: |
           set -euxo pipefail
           # Activate environment (will build & deploy latest)
