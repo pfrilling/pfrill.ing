@@ -129,7 +129,7 @@ test.describe('Search feature', () => {
 
     await searchInput.fill('Drupal');
     // Submit the form; try pressing Enter or clicking submit button
-    const submitButton = page.getByRole('button', { name: /search/i }).first();
+    const submitButton = page.locator('#search-form input#edit-submit').first();
 
     if (await submitButton.count()) {
       // In CI, Playwright's click waits for navigation and may hit the 15s actionTimeout.
@@ -137,7 +137,7 @@ test.describe('Search feature', () => {
       // for the load state instead.
       await Promise.all([
         page.waitForLoadState('domcontentloaded'),
-        submitButton.click({ noWaitAfter: true }),
+        submitButton.click(),
       ]);
     } else {
       await Promise.all([
@@ -155,7 +155,7 @@ test.describe('Search feature', () => {
     const noResultsCount = await noResultsMessage.count();
 
     expect(
-      resultsCount + noResultsCount,
+      resultsCount,
       'Expected search results or a "no results" message for "Drupal"'
     ).toBeGreaterThan(0);
   });
