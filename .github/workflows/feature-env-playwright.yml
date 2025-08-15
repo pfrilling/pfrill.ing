@@ -51,32 +51,14 @@ jobs:
         run: |
           set -euxo pipefail
           # Install via official installer
-          curl -fsSL https://raw.githubusercontent.com/platformsh/cli/main/installer.sh | bash
+          curl -fsSL https://raw.githubusercontent.com/platformsh/cli/main/installer.sh | VENDOR=upsun bash
 
-          # Ensure the installer-provided bin directory is on PATH
-          if [ -d "$HOME/.platformsh/bin" ]; then
-            echo "$HOME/.platformsh/bin" >> "$GITHUB_PATH"
-          fi
-          if [ -d "$HOME/.local/bin" ]; then
-            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          fi
-
-          # If 'upsun' is not present but 'platform' is, create a compatibility symlink
-          if ! command -v upsun >/dev/null 2>&1; then
-            if command -v platform >/dev/null 2>&1; then
-              mkdir -p "$HOME/.local/bin"
-              ln -sf "$(command -v platform)" "$HOME/.local/bin/upsun"
-              echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-            fi
-          fi
-
-          echo "Testing Upsun CLI"
           # Verify installation
           if command -v upsun >/dev/null 2>&1; then
             upsun --version
           else
             echo "Upsun CLI not found after installer" >&2
-            command -v platform >/dev/null 2>&1 && platform --version || true
+            command -v upsun >/dev/null 2>&1 && upsun --version || true
             exit 1
           fi
 
