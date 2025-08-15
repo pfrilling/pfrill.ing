@@ -132,9 +132,12 @@ test.describe('Search feature', () => {
     const submitButton = page.getByRole('button', { name: /search/i }).first();
 
     if (await submitButton.count()) {
+      // In CI, Playwright's click waits for navigation and may hit the 15s actionTimeout.
+      // Avoid double-waiting by disabling auto-wait on the click and explicitly waiting
+      // for the load state instead.
       await Promise.all([
         page.waitForLoadState('domcontentloaded'),
-        submitButton.click(),
+        submitButton.click({ noWaitAfter: true }),
       ]);
     } else {
       await Promise.all([
