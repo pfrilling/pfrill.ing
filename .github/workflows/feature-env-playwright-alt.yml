@@ -100,12 +100,39 @@ jobs:
             NEEDS_WAIT=true
           fi
 
-          # Wait for environment to be ready (only if we just activated/resumed it)
+          # Wait for environment to be ready (only if we just activated/resumed it or it's dirty)
           if [ "$NEEDS_WAIT" = "true" ]; then
             echo "Waiting for environment to be ready..."
-            upsun environment:wait --project "$UPSUN_PROJECT_ID" --environment "$ENV_NAME"
+            MAX_WAIT_ATTEMPTS=60  # Wait up to 10 minutes (60 * 10 seconds)
+            WAIT_ATTEMPT=1
+            
+            while [ $WAIT_ATTEMPT -le $MAX_WAIT_ATTEMPTS ]; do
+              echo "Wait attempt $WAIT_ATTEMPT/$MAX_WAIT_ATTEMPTS: Checking environment status..."
+              
+              CURRENT_ENV_INFO=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --format=plain)
+              
+              # Check if environment is no longer dirty and is active
+              if echo "$CURRENT_ENV_INFO" | grep -q "is_dirty.*false" && echo "$CURRENT_ENV_INFO" | grep -q "status.*active"; then
+                echo "✅ Environment is now active and clean!"
+                break
+              elif echo "$CURRENT_ENV_INFO" | grep -q "status.*active" && ! echo "$CURRENT_ENV_INFO" | grep -q "is_dirty.*true"; then
+                echo "✅ Environment is now active and clean!"
+                break
+              fi
+              
+              if [ $WAIT_ATTEMPT -eq $MAX_WAIT_ATTEMPTS ]; then
+                echo "❌ Environment failed to become ready after $MAX_WAIT_ATTEMPTS attempts"
+                echo "Current environment status:"
+                echo "$CURRENT_ENV_INFO"
+                exit 1
+              fi
+              
+              echo "Environment still not ready (dirty or inactive). Waiting 10 seconds..."
+              sleep 10
+              WAIT_ATTEMPT=$((WAIT_ATTEMPT + 1))
+            done
           else
-            echo "Environment was already active, skipping wait..."
+            echo "Environment was already active and clean, skipping wait..."
           fi
 
           # Get the primary URL - try different approaches
