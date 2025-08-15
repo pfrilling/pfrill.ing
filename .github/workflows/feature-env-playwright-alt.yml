@@ -61,13 +61,17 @@ jobs:
           if upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" >/dev/null 2>&1; then
             echo "Environment $ENV_NAME already exists. Checking if it's active..."
 
-            # Check if environment is active
-            ENV_STATUS=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --property=status --format=plain)
-            if [ "$ENV_STATUS" != "active" ]; then
-              echo "Environment is $ENV_STATUS. Activating..."
-              upsun environment:resume --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV" --no-wait --environment="$ENV_NAME"
-            else
+            # Get environment info and check if it's active
+            echo "Getting environment status..."
+            ENV_INFO=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --format=plain)
+            echo "$ENV_INFO"
+            
+            # Check if environment status is active (look for "Active" in the output)
+            if echo "$ENV_INFO" | grep -q "Status.*Active"; then
               echo "Environment is already active."
+            else
+              echo "Environment is not active. Activating..."
+              upsun environment:resume --project "$UPSUN_PROJECT_ID" --environment="$ENV_NAME" --no-wait
             fi
           else
             echo "Environment $ENV_NAME does not exist. Creating and activating..."
@@ -83,15 +87,17 @@ jobs:
           echo "Resolving environment URL..."
           PRIMARY_URL=""
 
-          # Try to get URLs from environment info
-          if PRIMARY_URL=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --property=urls --format=plain | head -n1 | awk '{print $1}' 2>/dev/null); then
-            echo "Found URL via property lookup: $PRIMARY_URL"
+          # Try to get URL from environment:url command
+          if PRIMARY_URL=$(upsun environment:url --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --pipe 2>/dev/null | head -n1); then
+            echo "Found URL via environment:url command: $PRIMARY_URL"
           fi
 
-          # Fallback: try to get URL from environment:url command
+          # Fallback: try to get URLs from environment info and parse output
           if [ -z "$PRIMARY_URL" ]; then
-            if PRIMARY_URL=$(upsun environment:url --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --pipe 2>/dev/null | head -n1); then
-              echo "Found URL via environment:url command: $PRIMARY_URL"
+            ENV_INFO=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --format=plain 2>/dev/null)
+            # Look for URLs in the output and extract the first HTTPS URL
+            if PRIMARY_URL=$(echo "$ENV_INFO" | grep -oE 'https://[^[:space:]]+' | head -n1); then
+              echo "Found URL via environment info parsing: $PRIMARY_URL"
             fi
           fi
 
