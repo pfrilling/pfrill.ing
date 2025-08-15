@@ -70,7 +70,16 @@ jobs:
             
             # Check if environment status is active (look for "status active" in the output)
             if echo "$ENV_INFO" | grep -q "status.*active"; then
-              echo "Environment is already active."
+              # Check if environment is dirty (deployment in progress) or has staged activities
+              if echo "$ENV_INFO" | grep -q "is_dirty.*true"; then
+                echo "Environment is active but dirty (deployment in progress). Waiting for completion..."
+                NEEDS_WAIT=true
+              elif echo "$ENV_INFO" | grep -q "has_staged_activities.*true"; then
+                echo "Environment is active but has staged activities (deployment pending). Waiting for completion..."
+                NEEDS_WAIT=true
+              else
+                echo "Environment is already active and clean."
+              fi
             elif echo "$ENV_INFO" | grep -q "status.*paused"; then
               echo "Environment is paused. Resuming..."
               upsun environment:resume --project "$UPSUN_PROJECT_ID" --environment="$ENV_NAME" --no-wait
