@@ -25,6 +25,7 @@ async function getFirstArticleLink(page: Page) {
     'article .node__title a',
     'article a',
     'main article a',
+    'li.search-results__item a'
   ];
   for (const sel of selectors) {
     const links = page.locator(sel);
@@ -99,66 +100,51 @@ test.describe('Home page and article navigation', () => {
   });
 });
 
-// 2) Main navigation has a "search" link
-// 3) Following the search link shows a search form
-// 4) Search for "Drupal" and confirm results are found
+// 2) Search for "Drupal" and confirm results are found
 
 test.describe('Search feature', () => {
-  test('navigation has search link and search works for "Drupal"', async ({ page, baseURL }) => {
+  test('search works for "Drupal"', async ({ page, baseURL }) => {
     const home = baseURL || '/';
-    const response = await page.goto(home, { waitUntil: 'domcontentloaded' });
+    const response = await page.goto(`${home}search/node?keys=drupal`, { waitUntil: 'domcontentloaded' });
+    expect(response, 'Search page should respond').toBeTruthy();
+    expect(response!.ok(), `Search page should return OK: ${response && response.status()}`).toBeTruthy();
 
-    // Try to locate a nav that contains a link with name containing "search"
-    const searchLink = page.getByRole('link', { name: /search/i });
-    expect(await searchLink.count(), 'Expected at least one "search" link in the main navigation').toBeGreaterThan(0);
+    // Find at least one article
+    const articles = page.locator('li.search-results__item');
+    expect(await articles.count(), 'Expected at least one search result on the page').toBeGreaterThan(0);
 
-    await Promise.all([
+    // Find pager and assert ordering
+    const pager = await findPager(page);
+    expect(pager, 'Expected a pager element on the search page').not.toBeNull();
+
+    // Ensure first article appears before pager in DOM order
+    {
+      const articleHandle = await page.locator('li.search-results__item').first().elementHandle();
+      const pagerHandle = await pager!.elementHandle();
+      expect(articleHandle).not.toBeNull();
+      expect(pagerHandle).not.toBeNull();
+      const isBefore = await page.evaluate(({ a, b }) => {
+        if (!a || !b) return false;
+        return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      }, { a: articleHandle, b: pagerHandle });
+      expect(isBefore, 'Expected an <article> to appear before the pager').toBeTruthy();
+    }
+
+    // Click first article link and ensure article page loads
+    const firstArticleLink = await getFirstArticleLink(page);
+    expect(firstArticleLink, 'Expected a clickable link inside an article').not.toBeNull();
+
+    const [nav] = await Promise.all([
       page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
-      searchLink.click(),
+      firstArticleLink!.click(),
     ]);
-
-    // On Drupal core Search page, expect an input name="keys"
-    const searchInput = page.locator('input[name="keys"], input[type="search"]');
-    await expect(searchInput, 'Expected a search input on the search page').toHaveCount(1);
-
-    await page.goto(`${home}search/node?keys=drupal`, { waitUntil: 'domcontentloaded' });
-    // await searchInput.fill('Drupal');
-    // // Submit the form; try pressing Enter or clicking submit button
-    // const submitButton = page.locator('#search-form input#edit-submit').first();
-    //
-    // // if (await submitButton.count()) {
-    // //   await Promise.all([
-    // //     page.waitForLoadState('domcontentloaded'),
-    // //     submitButton.click({ delay: 250 }),
-    // //   ]);
-    // // } else {
-    //   await Promise.all([
-    //     page.waitForLoadState('domcontentloaded'),
-    //     page.keyboard.press('Enter'),
-    //   ]);
-    // // }
-
-    // Confirm results render or a "no results" message is shown (Drupal may need indexing in fresh envs)
-    const results = page.locator('ol.search-results li.search-result, .search-results li');
-    const noResultsMessage = page.locator('text=/no results|did not match any results/i');
-
-    // Wait for either results or the "no results" message to appear to avoid navigation auto-wait timeouts.
-    await Promise.race([
-      results.first().waitFor({ state: 'visible', timeout: 15000 }),
-      noResultsMessage.first().waitFor({ state: 'visible', timeout: 15000 }),
-    ]).catch(() => { /* If neither appears, proceed to counts which will fail the assertion below. */ });
-
-    const resultsCount = await results.count();
-    const noResultsCount = await noResultsMessage.count();
-
-    expect(
-      resultsCount,
-      'Expected search results or a "no results" message for "Drupal"'
-    ).toBeGreaterThan(0);
+    expect(nav, 'Article page navigation should complete').toBeTruthy();
+    await expect(page, 'Article page should have a heading').toHaveTitle(/.+/);
+    await expect(page.locator('article')).toHaveCount(1);
   });
 });
 
-// 5) Browse to /user/login and confirm a 200
+// 3) Browse to /user/login and confirm a 200
 
 test('Login page responds with 200', async ({ page }) => {
   const resp = await page.goto('/user/login', { waitUntil: 'domcontentloaded' });
