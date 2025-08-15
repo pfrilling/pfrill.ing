@@ -131,19 +131,17 @@ test.describe('Search feature', () => {
     // Submit the form; try pressing Enter or clicking submit button
     const submitButton = page.locator('#search-form input#edit-submit').first();
 
-    if (await submitButton.count()) {
-      // In CI, Playwright's click waits for navigation and may hit the 15s actionTimeout.
-      // Avoid double-waiting by disabling auto-wait on the click and explicitly waiting
-      // for the load state instead.
-      await Promise.all([
-        submitButton.click({ delay: 250 }),
-      ]);
-    } else {
+    // if (await submitButton.count()) {
+    //   await Promise.all([
+    //     page.waitForLoadState('domcontentloaded'),
+    //     submitButton.click({ delay: 250 }),
+    //   ]);
+    // } else {
       await Promise.all([
         page.waitForLoadState('domcontentloaded'),
         page.keyboard.press('Enter'),
       ]);
-    }
+    // }
 
     // Confirm results render or a "no results" message is shown (Drupal may need indexing in fresh envs)
     const results = page.locator('ol.search-results li.search-result, .search-results li');
@@ -159,7 +157,7 @@ test.describe('Search feature', () => {
     const noResultsCount = await noResultsMessage.count();
 
     expect(
-      resultsCount + noResultsCount,
+      resultsCount,
       'Expected search results or a "no results" message for "Drupal"'
     ).toBeGreaterThan(0);
   });
