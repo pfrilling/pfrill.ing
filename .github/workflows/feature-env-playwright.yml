@@ -100,14 +100,14 @@ jobs:
             ENV_STATUS=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --property=status --format=plain)
             if [ "$ENV_STATUS" != "active" ]; then
               echo "Environment is $ENV_STATUS. Activating..."
-              upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID"
+              upsun environment:resume --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV" --no-wait --environment="$ENV_NAME"
             else
               echo "Environment is already active."
             fi
           else
             echo "Environment $ENV_NAME does not exist. Creating and activating..."
             # Create a new environment and activate it
-            upsun environment:activate --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV" --activate --no-wait "$ENV_NAME"
+            upsun environment:activate --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV" --no-wait --environment="$ENV_NAME" --resources-init=minimum
           fi
 
           # Wait a bit more to ensure the environment is fully accessible
