@@ -106,7 +106,13 @@ test.describe('Home page and article navigation', () => {
 test.describe('Search feature', () => {
   test('navigation has search link and search works for "Drupal"', async ({ page, baseURL }) => {
     const home = baseURL || '/';
-    await page.goto(home, { waitUntil: 'domcontentloaded' });
+    const response = await page.goto(home, { waitUntil: 'domcontentloaded' });
+    expect(response, 'Home page should respond').toBeTruthy();
+    expect(response!.ok(), `Home page should return OK: ${response && response.status()}`).toBeTruthy();
+
+    // Find at least one article
+    const articles = page.locator('article');
+    expect(await articles.count(), 'Expected at least one <article> on the page').toBeGreaterThan(0);
 
     // Try to locate a nav that contains a link with name containing "search"
     const searchLink = page.getByRole('link', { name: /search/i });
