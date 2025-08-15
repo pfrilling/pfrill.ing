@@ -68,18 +68,18 @@ jobs:
             ENV_INFO=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --format=plain)
             echo "$ENV_INFO"
             
-            # Check if environment status is active (look for "status active" in the output)
-            if echo "$ENV_INFO" | grep -q "status.*active"; then
-              # Check if environment is dirty (deployment in progress) or has staged activities
-              if echo "$ENV_INFO" | grep -q "is_dirty.*true"; then
-                echo "Environment is active but dirty (deployment in progress). Waiting for completion..."
-                NEEDS_WAIT=true
-              elif echo "$ENV_INFO" | grep -q "has_staged_activities.*true"; then
-                echo "Environment is active but has staged activities (deployment pending). Waiting for completion..."
-                NEEDS_WAIT=true
-              else
-                echo "Environment is already active and clean."
-              fi
+            # Check environment status and dirty state
+            if echo "$ENV_INFO" | grep -q "is_dirty.*true"; then
+              echo "Environment is dirty (deployment in progress). Waiting for completion..."
+              NEEDS_WAIT=true
+            elif echo "$ENV_INFO" | grep -q "has_staged_activities.*true"; then
+              echo "Environment has staged activities (deployment pending). Waiting for completion..."
+              NEEDS_WAIT=true
+            elif echo "$ENV_INFO" | grep -q "status.*active"; then
+              echo "Environment is active and clean."
+            elif echo "$ENV_INFO" | grep -q "status.*dirty"; then
+              echo "Environment status is dirty (deployment in progress). Waiting for completion..."
+              NEEDS_WAIT=true
             elif echo "$ENV_INFO" | grep -q "status.*paused"; then
               echo "Environment is paused. Resuming..."
               upsun environment:resume --project "$UPSUN_PROJECT_ID" --environment="$ENV_NAME" --no-wait
