@@ -28,12 +28,7 @@ jobs:
       - name: Determine environment name
         id: names
         run: |
-          if [ -n "${{ github.event.pull_request.number }}" ]; then
-            ENV_NAME="pr-${{ github.event.pull_request.number }}"
-          else
-            # Fallback to sanitized ref name if manually triggered
-            ENV_NAME="feat-${GITHUB_REF_NAME//\//-}"
-          fi
+          ENV_NAME="${GITHUB_REF_NAME}"
           echo "env_name=$ENV_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Install Node.js
@@ -56,16 +51,8 @@ jobs:
           UPSUN_PARENT_ENV: ${{ env.UPSUN_PARENT_ENV }}
         run: |
           set -euxo pipefail
-          # Ensure parent exists and is active (noop if already active)
-          upsun environment:activate --yes --environment "$UPSUN_PARENT_ENV" || true
-
-          # Create branch if it doesn't exist
-          if ! upsun environment:info --environment "$ENV_NAME" >/dev/null 2>&1; then
-            upsun environment:branch "$ENV_NAME" --parent "$UPSUN_PARENT_ENV" --yes
-          fi
-
           # Activate environment (will build & deploy latest)
-          upsun environment:activate --yes --environment "$ENV_NAME"
+          upsun environment:activate --yes --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --parent "$UPSUN_PARENT_ENV"
 
           # Wait for the environment to be reachable and get its primary URL
           # The CLI usually provides a simple way to get the URL; try primary URL with --pipe
