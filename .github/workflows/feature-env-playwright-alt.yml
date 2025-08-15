@@ -56,7 +56,7 @@ jobs:
           echo "Working with environment: $ENV_NAME"
           echo "Project ID: $UPSUN_PROJECT_ID"
           echo "Parent environment: $UPSUN_PARENT_ENV"
-          
+
           NEEDS_WAIT=false
 
           # Check if environment already exists
@@ -67,7 +67,7 @@ jobs:
             echo "Getting environment status..."
             ENV_INFO=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --format=plain)
             echo "$ENV_INFO"
-            
+
             # Check environment status and dirty state
             if echo "$ENV_INFO" | grep -q "is_dirty.*true"; then
               echo "Environment is dirty (deployment in progress). Waiting for completion..."
@@ -105,12 +105,12 @@ jobs:
             echo "Waiting for environment to be ready..."
             MAX_WAIT_ATTEMPTS=60  # Wait up to 10 minutes (60 * 10 seconds)
             WAIT_ATTEMPT=1
-            
+
             while [ $WAIT_ATTEMPT -le $MAX_WAIT_ATTEMPTS ]; do
               echo "Wait attempt $WAIT_ATTEMPT/$MAX_WAIT_ATTEMPTS: Checking environment status..."
-              
+
               CURRENT_ENV_INFO=$(upsun environment:info --environment "$ENV_NAME" --project "$UPSUN_PROJECT_ID" --format=plain)
-              
+
               # Check if environment is no longer dirty and is active
               if echo "$CURRENT_ENV_INFO" | grep -q "is_dirty.*false" && echo "$CURRENT_ENV_INFO" | grep -q "status.*active"; then
                 echo "✅ Environment is now active and clean!"
@@ -119,14 +119,14 @@ jobs:
                 echo "✅ Environment is now active and clean!"
                 break
               fi
-              
+
               if [ $WAIT_ATTEMPT -eq $MAX_WAIT_ATTEMPTS ]; then
                 echo "❌ Environment failed to become ready after $MAX_WAIT_ATTEMPTS attempts"
                 echo "Current environment status:"
                 echo "$CURRENT_ENV_INFO"
                 exit 1
               fi
-              
+
               echo "Environment still not ready (dirty or inactive). Waiting 10 seconds..."
               sleep 10
               WAIT_ATTEMPT=$((WAIT_ATTEMPT + 1))
@@ -167,7 +167,7 @@ jobs:
         env:
           BASE_URL: ${{ steps.upsun.outputs.base_url }}
         run: |
-          set -euxo pipefail
+          set -euo pipefail  # Removed 'x' flag to reduce noise, keep error handling
           echo "Verifying environment accessibility at $BASE_URL"
 
           # Wait for environment to respond with retries
@@ -177,28 +177,54 @@ jobs:
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
             echo "Attempt $ATTEMPT/$MAX_ATTEMPTS: Testing $BASE_URL"
 
-            # Get the HTTP response and debug it
-            HTTP_RESPONSE=$(curl -sI --max-time 10 --connect-timeout 5 "$BASE_URL" 2>/dev/null | head -n1 | tr -d '\r\n')
-            echo "HTTP Response: '$HTTP_RESPONSE'"
+            # Get the HTTP response with proper error handling
+            HTTP_RESPONSE=""
+            CURL_EXIT_CODE=0
+
+            # Try curl HEAD request first, then GET request as fallback
+            if HTTP_RESPONSE=$(curl -sI --max-time 10 --connect-timeout 5 "$BASE_URL" 2>/dev/null | head -n1 | tr -d '\r\n'); then
+              CURL_EXIT_CODE=0
+            else
+              CURL_EXIT_CODE=$?
+              # Fallback: try a GET request with limited output
+              if [ $CURL_EXIT_CODE -ne 0 ]; then
+                echo "HEAD request failed, trying GET request..."
+                if HTTP_RESPONSE=$(curl -s --max-time 10 --connect-timeout 5 --head "$BASE_URL" 2>/dev/null | head -n1 | tr -d '\r\n'); then
+                  CURL_EXIT_CODE=0
+                else
+                  CURL_EXIT_CODE=$?
+                fi
+              fi
+            fi
+
+            echo "HTTP Response: '$HTTP_RESPONSE' (curl exit code: $CURL_EXIT_CODE)"
 
             # Check for successful HTTP status codes (200-399)
-            if echo "$HTTP_RESPONSE" | grep -qE "HTTP/[12]\.[0-9] [23][0-9][0-9]"; then
+            # Handle both HTTP/1.x format and HTTP/2 format
+            if [ -n "$HTTP_RESPONSE" ] && (echo "$HTTP_RESPONSE" | grep -qE "HTTP/[12](\.[0-9])? [23][0-9][0-9]"); then
               echo "✅ Environment is responding successfully with status: $HTTP_RESPONSE"
               break
-            elif echo "$HTTP_RESPONSE" | grep -qE "HTTP/[12]\.[0-9] [45][0-9][0-9]"; then
+            elif [ -n "$HTTP_RESPONSE" ] && (echo "$HTTP_RESPONSE" | grep -qE "HTTP/[12](\.[0-9])? [45][0-9][0-9]"); then
               echo "⚠️  Environment responded with error status: $HTTP_RESPONSE"
               echo "This might still work for testing, continuing..."
               break
             elif [ -n "$HTTP_RESPONSE" ]; then
               echo "❓ Unexpected HTTP response: $HTTP_RESPONSE"
             else
-              echo "❌ No HTTP response received (connection failed)"
+              case $CURL_EXIT_CODE in
+                0)  echo "❓ Curl succeeded but no response captured" ;;
+                6)  echo "❌ Could not resolve host" ;;
+                7)  echo "❌ Failed to connect to host" ;;
+                28) echo "❌ Connection timeout" ;;
+                *)  echo "❌ Curl failed with exit code $CURL_EXIT_CODE" ;;
+              esac
             fi
 
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
               echo "❌ Environment failed to respond properly after $MAX_ATTEMPTS attempts"
-              echo "Last response was: '$HTTP_RESPONSE'"
-              echo "Continuing anyway - Playwright tests may still work..."
+              echo "Last response was: '$HTTP_RESPONSE' (exit code: $CURL_EXIT_CODE)"
+              echo "⚠️  Continuing anyway - Playwright tests may still work..."
+              echo "Note: Some environments may not respond to HEAD requests but work fine for browsers"
               break
             fi
 
