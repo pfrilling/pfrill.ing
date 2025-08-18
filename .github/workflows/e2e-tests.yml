@@ -13,7 +13,7 @@ jobs:
   test:
     name: End to End testing.
     runs-on: ubuntu-latest
-    #if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     env:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
       UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
