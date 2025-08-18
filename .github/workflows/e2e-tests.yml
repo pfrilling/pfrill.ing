@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 jobs:
   test:
-    name: Test Drupal
+    name: End to End testing.
     runs-on: ubuntu-latest
     env:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
@@ -91,6 +91,7 @@ jobs:
           ./vendor/bin/drush cache:rebuild --yes
           ./vendor/bin/drush deploy:hook --yes
           ./vendor/bin/drush recipe ./recipes/essentials --yes
+          ./vendor/bin/drush serve
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -115,8 +116,8 @@ jobs:
       - name: Run Playwright tests against feature env
         working-directory: tests/playwright
         env:
-          BASE_URL: 'http://localhost/'
-          PLAYWRIGHT_BASE_URL: 'http://localhost/'
+          BASE_URL: 'http://127.0.0.1:8888/'
+          PLAYWRIGHT_BASE_URL: 'http://127.0.0.1:8888/'
         run: |
           set -euxo pipefail
           echo "Running Playwright tests against: $BASE_URL"
