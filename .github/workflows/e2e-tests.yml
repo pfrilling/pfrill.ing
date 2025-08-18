@@ -13,7 +13,7 @@ jobs:
   test:
     name: End to End testing.
     runs-on: ubuntu-latest
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    #if: github.event.pull_request.user.login == 'dependabot[bot]'
     env:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
       UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
@@ -83,7 +83,7 @@ jobs:
       # or an already sanitized articfact.
       - name: Get database from environment.
         run: |
-          upsun db:dump --project "$UPSUN_PROJECT_ID" --environment "main" --file=/tmp/dump.sql.gz --gzip
+          upsun db:dump --project=$UPSUN_PROJECT_ID --environment=main --file=/tmp/dump.sql.gz --gzip
           gunzip -c /tmp/dump.sql.gz | mysql -h127.0.0.1 -P3306 -uroot -proot drupal
           ls -l /tmp
           rm /tmp/dump.sql.gz
