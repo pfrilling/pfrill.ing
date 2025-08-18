@@ -1,0 +1,157 @@
+name: e2e-tests.yml
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  test:
+    name: End to End testing.
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    env:
+      UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
+      UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+      UPSUN_CLI_NO_INTERACTION: 1
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root
+    services:
+      database:
+        image: 'mariadb:10.11'
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: drupal
+          MYSQL_USER: drupal
+          MYSQL_PASSWORD: drupal
+        ports:
+          - 3306:3306
+    steps:
+      - name: Set up environment variables
+        if: ${{ inputs.envvars != '' }}
+        run: |
+          echo "${{ inputs.envvars }}" | while IFS= read -r line; do
+            echo "${line}" >> $GITHUB_ENV
+          done
+          env
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: 'gd, curl, mbstring, mysqli, opcache, xml, zip, apcu'
+          tools: 'composer'
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Install Drupal
+        run: ./vendor/bin/drush site-install ${{ inputs.test-drupal-install-options }} --yes
+
+#      - name: Run PHPUnit tests
+#        if: ${{ inputs.test-drupal-phpunit == true }}
+#        run: composer test:php
+#
+#      - name: Run PHPCS tests
+#        if: ${{ inputs.test-drupal-phpcs == true }}
+#        run: composer validate:php
+#
+#      - name: Run PHPStan tests
+#        if: ${{ inputs.test-drupal-phpstan == true }}
+#        run: php vendor/bin/phpstan analyze
+#
+#      - name: Run PHPStan tests
+#        if: ${{ inputs.test-drupal-phpstan == true }}
+#        run: php vendor/bin/phpstan analyze
+
+      - name: Setup Upsun CLI
+        uses: upsun/action-cli@v1
+        with:
+          cli_provider: 'upsun'
+          cli_token: ${{ secrets.UPSUN_API_TOKEN }}
+          project_id: ${{ secrets.UPSUN_PROJECT_ID }}
+
+      # @todo Move this to a script not being pulled from production.
+      # or an already sanitized articfact.
+      - name: Get database from environment.
+        run: |
+          upsun db:dump --project "$UPSUN_PROJECT_ID" --environment "main" --file=/tmp/dump.sql.gz --gzip
+          gunzip -c /tmp/dump.sql.gz | mysql -h127.0.0.1 -P3306 -uroot -proot drupal
+          ls -l /tmp
+          rm /tmp/dump.sql.gz
+
+      - name: Sanitize the database.
+        run: php vendor/bin/drush sql-sanitize --yes
+
+      # @todo: Convert to script for reuse.
+      - name: Run deployment script.
+        run: |
+          ./vendor/bin/drush updatedb --no-cache-clear --yes
+          ./vendor/bin/drush cache:rebuild --yes
+          ./vendor/bin/drush deploy:hook --yes
+          ./vendor/bin/drush recipe ./recipes/essentials --yes
+          ./vendor/bin/drush serve &
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: tests/playwright/package-lock.json
+
+      - name: Install Playwright dependencies
+        working-directory: tests/playwright
+        run: |
+          set -euxo pipefail
+          npm ci
+
+      - name: Install Playwright browsers
+        working-directory: tests/playwright
+        run: |
+          set -euxo pipefail
+          echo "installing Playwright browsers"
+          npx playwright install --with-deps
+
+      - name: Run Playwright tests against feature env
+        working-directory: tests/playwright
+        env:
+          BASE_URL: 'http://127.0.0.1:8888/'
+          PLAYWRIGHT_BASE_URL: 'http://127.0.0.1:8888/'
+        run: |
+          set -euxo pipefail
+          echo "Running Playwright tests against: $BASE_URL"
+          echo "Playwright will use BASE_URL: $BASE_URL"
+          npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            tests/playwright/playwright-report
+            tests/playwright/test-results
+          if-no-files-found: ignore
+
+  # Auto-merge dependabot PRs when tests pass
+  auto-merge:
+    name: Auto-merge dependabot PR
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Auto-merge dependabot PR
+        run: |
+          echo "All tests passed! Auto-merging dependabot PR #${{ github.event.pull_request.number }}"
+          gh pr merge ${{ github.event.pull_request.number }} --auto --squash --delete-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}

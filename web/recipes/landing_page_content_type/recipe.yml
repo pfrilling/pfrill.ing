@@ -1,0 +1,102 @@
+name: 'Landing Page'
+description: 'A content type with Layout Builder support for creating custom page layouts.'
+type: 'Content type recipe'
+install:
+  - layout_builder
+  - node
+  - menu_ui
+config:
+  strict:
+    # Treat field storages strictly, since they influence the database layout.
+    - field.storage.node.layout_builder__layout
+  import:
+    node:
+      - core.entity_view_mode.node.full
+      - core.entity_view_mode.node.teaser
+      - system.action.node_delete_action
+      - system.action.node_make_sticky_action
+      - system.action.node_make_unsticky_action
+      - system.action.node_promote_action
+      - system.action.node_publish_action
+      - system.action.node_save_action
+      - system.action.node_unpromote_action
+      - system.action.node_unpublish_action
+  actions:
+    core.entity_form_display.node.landing_page.default:
+      createIfNotExists:
+        targetEntityType: node
+        bundle: landing_page
+        mode: default
+        status: true
+      setComponents:
+        - name: title
+          options:
+            type: string_textfield
+            weight: -5
+            region: content
+            settings:
+              size: 60
+              placeholder: ''
+        - name: uid
+          options:
+            type: entity_reference_autocomplete
+            weight: 5
+            region: content
+            settings:
+              match_operator: CONTAINS
+              match_limit: 10
+              size: 60
+              placeholder: ''
+        - name: created
+          options:
+            type: datetime_timestamp
+            weight: 10
+            region: content
+        - name: promote
+          options:
+            type: boolean_checkbox
+            weight: 15
+            region: content
+            settings:
+              display_label: true
+        - name: sticky
+          options:
+            type: boolean_checkbox
+            weight: 16
+            region: content
+            settings:
+              display_label: true
+        - name: path
+          options:
+            type: path
+            weight: 30
+            region: content
+        - name: status
+          options:
+            type: boolean_checkbox
+            weight: 120
+            region: content
+            settings:
+              display_label: true
+    core.entity_view_display.node.landing_page.default:
+      createIfNotExists:
+        targetEntityType: node
+        bundle: landing_page
+        mode: default
+        status: true
+      setComponents:
+        - name: links
+          options:
+            weight: 100
+            region: content
+    core.entity_view_display.node.landing_page.teaser:
+      createIfNotExists:
+        targetEntityType: node
+        bundle: landing_page
+        mode: teaser
+        status: true
+      setComponents:
+        - name: links
+          options:
+            weight: 100
+            region: content

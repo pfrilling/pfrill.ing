@@ -1,0 +1,23 @@
+name: 'Landing Page Editor Role'
+description: 'Creates a Landing Page Editor user role with CRUD permissions for landing page content type.'
+type: 'User role recipe'
+install:
+  - user
+config:
+  actions:
+    user.role.landing_page_editor:
+      createIfNotExists:
+        id: landing_page_editor
+        label: 'Landing Page Editor'
+        weight: 4
+        is_admin: false
+        status: true
+      grantPermissions:
+        - 'access content'
+        - 'access content overview'
+        - 'create landing_page content'
+        - 'delete own landing_page content'
+        - 'edit own landing_page content'
+        - 'view own unpublished content'
+        - 'configure any layout'
+        - 'configure editable landing_page node layout overrides'

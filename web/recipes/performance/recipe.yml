@@ -1,0 +1,22 @@
+name: 'Performance'
+description: 'Enables CSS/JS aggregation for improved front-end performance.'
+type: 'Performance'
+install:
+  - system
+recipes:
+  - core/recipes/core_recommended_performance
+config:
+  # Keep existing config as-is when importing.
+  strict: false
+  actions:
+    system.performance:
+      simpleConfigUpdate:
+        cache.page.max_age: 86400
+        css.preprocess: true
+        css.gzip: true
+        js.preprocess: true
+        js.gzipe: true
+    system.logging:
+      simpleConfigUpdate:
+        error_level: hide
+

@@ -1,0 +1,21 @@
+name: 'Article Editor Role'
+description: 'Creates an Article Editor user role with CRUD permissions for article content type.'
+type: 'User role recipe'
+install:
+  - user
+config:
+  actions:
+    user.role.article_editor:
+      createIfNotExists:
+        id: article_editor
+        label: 'Article Editor'
+        weight: 3
+        is_admin: false
+        status: true
+      grantPermissions:
+        - 'access content'
+        - 'access content overview'
+        - 'create article content'
+        - 'delete own article content'
+        - 'edit own article content'
+        - 'view own unpublished content'

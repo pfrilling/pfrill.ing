@@ -1,0 +1,8 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'Client tags'
+vid: client_tags
+description: null
+weight: 0
+new_revision: false

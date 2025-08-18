@@ -119,10 +119,14 @@ applications:
       # More information: https://docs.upsun.com/create-apps/hooks/hooks-comparison.html#deploy-hook
       deploy: |
         set -eux
+        php ./drush/upsun_generate_drush_yml.php
         # echo 'Run drush deploy'
-        cd web; ../vendor/bin/drush deploy --yes
-
-
+        #cd web; ../vendor/bin/drush deploy --yes
+        cd web
+        ../vendor/bin/drush updatedb --no-cache-clear --yes
+        ../vendor/bin/drush cache:rebuild --yes
+        ../vendor/bin/drush deploy:hook --yes
+        ../vendor/bin/drush recipe ./recipes/essentials --yes
 
       # The post_deploy hook is run after the app container has been started and after it has started accepting requests.
       # More information: https://docs.upsun.com/create-apps/hooks/hooks-comparison.html#deploy-hook

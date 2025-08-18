@@ -1,0 +1,21 @@
+name: 'Page Editor Role'
+description: 'Creates a Page Editor user role with CRUD permissions for page content type.'
+type: 'User role recipe'
+install:
+  - user
+config:
+  actions:
+    user.role.page_editor:
+      createIfNotExists:
+        id: page_editor
+        label: 'Page Editor'
+        weight: 5
+        is_admin: false
+        status: true
+      grantPermissions:
+        - 'access content'
+        - 'access content overview'
+        - 'create page content'
+        - 'delete own page content'
+        - 'edit own page content'
+        - 'view own unpublished content'

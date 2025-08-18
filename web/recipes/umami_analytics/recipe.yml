@@ -1,0 +1,17 @@
+name: 'Umami Analytics'
+description: 'Installs and configures Umami Analytics with environment variable support for website_id.'
+type: 'Module recipe'
+install:
+  - umami_analytics
+input:
+  website_id:
+    data_type: string
+    description: The Umami Analytics website ID.
+    default:
+      source: env
+      env: UMAMI_WEBSITE_ID
+config:
+  actions:
+    umami_analytics.settings:
+      simpleConfigUpdate:
+        website_id: ${website_id}

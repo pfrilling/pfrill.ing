@@ -944,6 +944,7 @@ if (getenv('IS_DDEV_PROJECT') == 'true' && is_readable($ddev_settings)) {
   ];
 }
 
+// Required for Github E2E tests.
 if (getenv('GITHUB_ACTIONS')) {
   $databases['default']['default'] = [
     'database' => 'drupal',

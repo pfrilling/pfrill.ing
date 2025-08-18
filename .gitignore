@@ -41,3 +41,5 @@
 !/private/.gitkeep
 
 .idea
+/tests/playwright/node_modules/
+/tests/playwright/test-results/

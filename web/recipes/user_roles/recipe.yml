@@ -1,0 +1,7 @@
+name: 'User Roles'
+description: 'Installs all content type editor roles: Article Editor, Landing Page Editor, and Page Editor.'
+type: 'User roles recipe'
+recipes:
+  - article_editor_role
+  - landing_page_editor_role
+  - page_editor_role

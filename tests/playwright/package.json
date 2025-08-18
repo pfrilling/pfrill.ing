@@ -1,0 +1,14 @@
+{
+  "name": "pfrill-ing-playwright-tests",
+  "private": true,
+  "version": "1.0.0",
+  "description": "End-to-end Playwright tests for the Drupal site.",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.46.0"
+  }
+}

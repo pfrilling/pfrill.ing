@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# ddev-description: Run Playwright end-to-end tests against the current ddev site (using DDEV Node.js)
+# ddev-usage: ddev e2e [--headed|--ui|--install]
+# ddev-help: Examples:
+# ddev-help:   ddev e2e                 # Headless run using DDEV Node.js
+# ddev-help:   ddev e2e --headed        # Headed mode using DDEV Node.js
+# ddev-help:   ddev e2e --ui            # Playwright UI mode using DDEV Node.js
+# ddev-help:   ddev e2e --install       # Ensure npm deps and Playwright browsers are installed first
+
+set -euo pipefail
+
+# Ensure ddev is started
+if ! ddev describe >/dev/null 2>&1; then
+  echo "Starting ddev..." >&2
+  ddev start >/dev/null
+fi
+
+# Discover the PRIMARY URL from ddev describe output (robust parsing)
+# Prefer matching "PRIMARY URL:" line; fallback to underscore variant; then any https URL.
+PRIMARY_URL=$(ddev describe 2>/dev/null | sed -nE 's/^PRIMARY URL:[[:space:]]*([^[:space:]]+).*/\1/p' | head -n1)
+if [ -z "${PRIMARY_URL:-}" ]; then
+  PRIMARY_URL=$(ddev describe 2>/dev/null | awk '/PRIMARY_URL/ {print $2; exit}')
+fi
+if [ -z "${PRIMARY_URL:-}" ]; then
+  PRIMARY_URL=$(ddev describe 2>/dev/null | sed -nE 's/.*(https?:\/\/[^[:space:]]+).*/\1/p' | head -n1)
+fi
+if [ -z "${PRIMARY_URL:-}" ]; then
+  echo "Error: Unable to determine PRIMARY URL from 'ddev describe'." >&2
+  exit 1
+fi
+
+PLAYWRIGHT_DIR="tests/playwright"
+if [ ! -d "$PLAYWRIGHT_DIR" ]; then
+  echo "Error: $PLAYWRIGHT_DIR not found. Are you in the project root?" >&2
+  exit 1
+fi
+
+# One-time install if requested or node_modules missing
+DO_INSTALL=false
+if [ "${1:-}" = "--install" ]; then
+  DO_INSTALL=true
+  shift
+fi
+
+# Check if node_modules exists (need to check from host since we haven't entered container yet)
+if [ ! -d "$PLAYWRIGHT_DIR/node_modules" ]; then
+  DO_INSTALL=true
+fi
+
+if $DO_INSTALL; then
+  echo "Installing npm dependencies using DDEV Node.js..." >&2
+  ddev exec "cd $PLAYWRIGHT_DIR && npm install"
+  echo "Installing Playwright browsers (first run only)..." >&2
+  ddev exec "cd $PLAYWRIGHT_DIR && npx playwright@latest install --with-deps"
+fi
+
+# Pass through remaining args to Playwright (e.g., --headed, --ui)
+ARGS=("$@")
+
+# Check if we need to run with GUI (headed or UI mode)
+NEEDS_GUI=false
+if [[ " ${ARGS[*]} " == *" --headed "* ]] || [[ " ${ARGS[*]} " == *" --ui "* ]]; then
+  NEEDS_GUI=true
+fi
+
+if $NEEDS_GUI; then
+  # For GUI modes, run on host but ensure we use the latest dependencies
+  echo "Running Playwright with GUI using host system (GUI modes require display)..." >&2
+  echo "Using DDEV for dependency management, host Node.js ($(node --version)) for execution..." >&2
+  
+  # Ensure dependencies are up to date using DDEV
+  pushd "$PLAYWRIGHT_DIR" >/dev/null
+  
+  # Set BASE_URL and run with host Node.js
+  export BASE_URL="$PRIMARY_URL"
+  
+  if [[ " ${ARGS[*]} " == *" --ui "* ]]; then
+    npx playwright test --ui
+  else
+    npx playwright test "${ARGS[@]}"
+  fi
+  
+  popd >/dev/null
+else
+  # For headless mode, use DDEV Node.js
+  echo "Running Playwright tests using DDEV Node.js ($(ddev exec node --version))..." >&2
+  BASE_URL_EXPORT="export BASE_URL='$PRIMARY_URL'"
+  ddev exec "cd $PLAYWRIGHT_DIR && $BASE_URL_EXPORT && npx playwright test ${ARGS[*]}"
+fi
