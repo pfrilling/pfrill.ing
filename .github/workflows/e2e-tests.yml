@@ -1,0 +1,126 @@
+name: e2e-tests.yml
+on:
+
+jobs:
+  test:
+    name: Test Drupal
+    runs-on: ubuntu-latest
+    env:
+      UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
+      UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+      UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+      UPSUN_CLI_NO_INTERACTION: 1
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root
+    services:
+      database:
+        image: 'mariadb:10.11'
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: drupal
+          MYSQL_USER: drupal
+          MYSQL_PASSWORD: drupal
+        ports:
+          - 3306:3306
+    steps:
+      - name: Set up environment variables
+        if: ${{ inputs.envvars != '' }}
+        run: |
+          echo "${{ inputs.envvars }}" | while IFS= read -r line; do
+            echo "${line}" >> $GITHUB_ENV
+          done
+          env
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: 'gd, curl, mbstring, mysqli, opcache, xml, zip, apcu'
+          tools: 'composer'
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress
+
+      - name: Install Drupal
+        run: ./vendor/bin/drush site-install ${{ inputs.test-drupal-install-options }} --yes
+
+      - name: Run PHPUnit tests
+        if: ${{ inputs.test-drupal-phpunit == true }}
+        run: composer test:php
+
+      - name: Run PHPCS tests
+        if: ${{ inputs.test-drupal-phpcs == true }}
+        run: composer validate:php
+
+      - name: Run PHPStan tests
+        if: ${{ inputs.test-drupal-phpstan == true }}
+        run: php vendor/bin/phpstan analyze
+
+      - name: Run PHPStan tests
+        if: ${{ inputs.test-drupal-phpstan == true }}
+        run: php vendor/bin/phpstan analyze
+
+      - name: Setup Upsun CLI
+        uses: upsun/action-cli@v1
+        with:
+          cli_provider: 'upsun'
+          cli_token: ${{ secrets.UPSUN_API_TOKEN }}
+          project_id: ${{ secrets.UPSUN_PROJECT_ID }}
+
+      - name: Get database from environment.
+        run: |
+          upsun db:dump --project "$UPSUN_PROJECT_ID" --environment "main" --file=/tmp/dump.sql.gz --gzip
+          gunzip -c /tmp/dump.sql.gz | mysql -h127.0.0.1 -P3306 -uroot -proot drupal
+          rm /tmp/dump.sql
+
+      - name: Sanitize the database.
+        run: php vendor/bin/drush sql-sanitize --yes
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: tests/playwright/package-lock.json
+
+      - name: Install Playwright dependencies
+        working-directory: tests/playwright
+        run: |
+          set -euxo pipefail
+          npm ci
+
+      - name: Install Playwright browsers
+        working-directory: tests/playwright
+        run: |
+          set -euxo pipefail
+          echo "installing Playwright browsers"
+          npx playwright install --with-deps
+
+      - name: Run Playwright tests against feature env
+        working-directory: tests/playwright
+        env:
+          BASE_URL: 'http://localhost/'
+          PLAYWRIGHT_BASE_URL: 'http://localhost/'
+        run: |
+          set -euxo pipefail
+          echo "Running Playwright tests against: $BASE_URL"
+          echo "Playwright will use BASE_URL: $BASE_URL"
+          npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            tests/playwright/playwright-report
+            tests/playwright/test-results
+          if-no-files-found: ignore
+
+
+
+
