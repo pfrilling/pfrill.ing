@@ -119,6 +119,7 @@ applications:
       # More information: https://docs.upsun.com/create-apps/hooks/hooks-comparison.html#deploy-hook
       deploy: |
         set -eux
+        php ./drush/upsun_generate_drush_yml.php
         # echo 'Run drush deploy'
         #cd web; ../vendor/bin/drush deploy --yes
         cd web
