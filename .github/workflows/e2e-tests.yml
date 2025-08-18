@@ -91,7 +91,7 @@ jobs:
           ./vendor/bin/drush cache:rebuild --yes
           ./vendor/bin/drush deploy:hook --yes
           ./vendor/bin/drush recipe ./recipes/essentials --yes
-          ./vendor/bin/drush serve
+          ./vendor/bin/drush serve &
 
       - name: Install Node.js
         uses: actions/setup-node@v4
