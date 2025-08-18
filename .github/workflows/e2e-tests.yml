@@ -1,6 +1,8 @@
 name: e2e-tests.yml
 on:
-
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+  workflow_dispatch:
 jobs:
   test:
     name: Test Drupal
