@@ -43,6 +43,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug environment variables
+        run: echo "$UPSUN_PROJECT_ID"
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
