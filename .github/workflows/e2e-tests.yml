@@ -72,14 +72,25 @@ jobs:
           cli_token: ${{ secrets.UPSUN_API_TOKEN }}
           project_id: ${{ secrets.UPSUN_PROJECT_ID }}
 
+      # @todo Move this to a script not being pulled from production.
+      # or an already sanitized articfact.
       - name: Get database from environment.
         run: |
           upsun db:dump --project "$UPSUN_PROJECT_ID" --environment "main" --file=/tmp/dump.sql.gz --gzip
           gunzip -c /tmp/dump.sql.gz | mysql -h127.0.0.1 -P3306 -uroot -proot drupal
-          rm /tmp/dump.sql
+          ls -l /tmp
+          rm /tmp/dump.sql.gz
 
       - name: Sanitize the database.
         run: php vendor/bin/drush sql-sanitize --yes
+
+      # @todo: Convert to script for reuse.
+      - name: Run deployment script.
+        run: |
+          ./vendor/bin/drush updatedb --no-cache-clear --yes
+          ./vendor/bin/drush cache:rebuild --yes
+          ./vendor/bin/drush deploy:hook --yes
+          ./vendor/bin/drush recipe ./recipes/essentials --yes
 
       - name: Install Node.js
         uses: actions/setup-node@v4
