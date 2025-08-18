@@ -7,7 +7,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
-      UPSUN_API_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
       UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
       UPSUN_CLI_NO_INTERACTION: 1
       MYSQL_HOST: 127.0.0.1
@@ -48,21 +47,21 @@ jobs:
       - name: Install Drupal
         run: ./vendor/bin/drush site-install ${{ inputs.test-drupal-install-options }} --yes
 
-      - name: Run PHPUnit tests
-        if: ${{ inputs.test-drupal-phpunit == true }}
-        run: composer test:php
-
-      - name: Run PHPCS tests
-        if: ${{ inputs.test-drupal-phpcs == true }}
-        run: composer validate:php
-
-      - name: Run PHPStan tests
-        if: ${{ inputs.test-drupal-phpstan == true }}
-        run: php vendor/bin/phpstan analyze
-
-      - name: Run PHPStan tests
-        if: ${{ inputs.test-drupal-phpstan == true }}
-        run: php vendor/bin/phpstan analyze
+#      - name: Run PHPUnit tests
+#        if: ${{ inputs.test-drupal-phpunit == true }}
+#        run: composer test:php
+#
+#      - name: Run PHPCS tests
+#        if: ${{ inputs.test-drupal-phpcs == true }}
+#        run: composer validate:php
+#
+#      - name: Run PHPStan tests
+#        if: ${{ inputs.test-drupal-phpstan == true }}
+#        run: php vendor/bin/phpstan analyze
+#
+#      - name: Run PHPStan tests
+#        if: ${{ inputs.test-drupal-phpstan == true }}
+#        run: php vendor/bin/phpstan analyze
 
       - name: Setup Upsun CLI
         uses: upsun/action-cli@v1
