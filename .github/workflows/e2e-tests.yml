@@ -43,9 +43,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Debug environment variables
-        run: echo "$UPSUN_PROJECT_ID"
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -86,7 +83,7 @@ jobs:
       # or an already sanitized articfact.
       - name: Get database from environment.
         run: |
-          upsun db:dump --project=$UPSUN_PROJECT_ID --environment=main --file=/tmp/dump.sql.gz --gzip
+          upsun db:dump --project=$UPSUN_PROJECT_ID --environment=main --file=/tmp/dump.sql.gz --gzip --verbose
           gunzip -c /tmp/dump.sql.gz | mysql -h127.0.0.1 -P3306 -uroot -proot drupal
           ls -l /tmp
           rm /tmp/dump.sql.gz
