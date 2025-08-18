@@ -102,47 +102,47 @@ test.describe('Home page and article navigation', () => {
 
 // 2) Search for "Drupal" and confirm results are found
 
-// test.describe('Search feature', () => {
-//   test('search works for "Drupal"', async ({ page, baseURL }) => {
-//     const home = baseURL || '/';
-//     const response = await page.goto(`${home}search/node?keys=drupal`, { waitUntil: 'domcontentloaded' });
-//     expect(response, 'Search page should respond').toBeTruthy();
-//     expect(response!.ok(), `Search page should return OK: ${response && response.status()}`).toBeTruthy();
-//
-//     // Find at least one article
-//     const articles = page.locator('li.search-results__item');
-//     expect(await articles.count(), 'Expected at least one search result on the page').toBeGreaterThan(0);
-//
-//     // Find pager and assert ordering
-//     const pager = await findPager(page);
-//     expect(pager, 'Expected a pager element on the search page').not.toBeNull();
-//
-//     // Ensure first article appears before pager in DOM order
-//     {
-//       const articleHandle = await page.locator('li.search-results__item').first().elementHandle();
-//       const pagerHandle = await pager!.elementHandle();
-//       expect(articleHandle).not.toBeNull();
-//       expect(pagerHandle).not.toBeNull();
-//       const isBefore = await page.evaluate(({ a, b }) => {
-//         if (!a || !b) return false;
-//         return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
-//       }, { a: articleHandle, b: pagerHandle });
-//       expect(isBefore, 'Expected an <article> to appear before the pager').toBeTruthy();
-//     }
-//
-//     // Click first article link and ensure article page loads
-//     const firstArticleLink = await getFirstArticleLink(page);
-//     expect(firstArticleLink, 'Expected a clickable link inside an article').not.toBeNull();
-//
-//     const [nav] = await Promise.all([
-//       page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
-//       firstArticleLink!.click(),
-//     ]);
-//     expect(nav, 'Article page navigation should complete').toBeTruthy();
-//     await expect(page, 'Article page should have a heading').toHaveTitle(/.+/);
-//     await expect(page.locator('article')).toHaveCount(1);
-//   });
-// });
+test.describe('Search feature', () => {
+  test('search works for "Drupal"', async ({ page, baseURL }) => {
+    const home = baseURL || '/';
+    const response = await page.goto(`${home}search/node?keys=drupal`, { waitUntil: 'domcontentloaded' });
+    expect(response, 'Search page should respond').toBeTruthy();
+    expect(response!.ok(), `Search page should return OK: ${response && response.status()}`).toBeTruthy();
+
+    // Find at least one article
+    const articles = page.locator('li.search-results__item');
+    expect(await articles.count(), 'Expected at least one search result on the page').toBeGreaterThan(0);
+
+    // Find pager and assert ordering
+    const pager = await findPager(page);
+    expect(pager, 'Expected a pager element on the search page').not.toBeNull();
+
+    // Ensure first article appears before pager in DOM order
+    {
+      const articleHandle = await page.locator('li.search-results__item').first().elementHandle();
+      const pagerHandle = await pager!.elementHandle();
+      expect(articleHandle).not.toBeNull();
+      expect(pagerHandle).not.toBeNull();
+      const isBefore = await page.evaluate(({ a, b }) => {
+        if (!a || !b) return false;
+        return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      }, { a: articleHandle, b: pagerHandle });
+      expect(isBefore, 'Expected an <article> to appear before the pager').toBeTruthy();
+    }
+
+    // Click first article link and ensure article page loads
+    const firstArticleLink = await getFirstArticleLink(page);
+    expect(firstArticleLink, 'Expected a clickable link inside an article').not.toBeNull();
+
+    const [nav] = await Promise.all([
+      page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+      firstArticleLink!.click(),
+    ]);
+    expect(nav, 'Article page navigation should complete').toBeTruthy();
+    await expect(page, 'Article page should have a heading').toHaveTitle(/.+/);
+    await expect(page.locator('article')).toHaveCount(1);
+  });
+});
 
 // 3) Browse to /user/login and confirm a 200
 

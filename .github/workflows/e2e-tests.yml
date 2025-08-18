@@ -1,12 +1,19 @@
 name: e2e-tests.yml
+
 on:
   pull_request:
     types: [ opened, synchronize, reopened ]
   workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   test:
     name: End to End testing.
     runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     env:
       UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
       UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
@@ -134,6 +141,17 @@ jobs:
             tests/playwright/test-results
           if-no-files-found: ignore
 
-
-
-
+  # Auto-merge dependabot PRs when tests pass
+  auto-merge:
+    name: Auto-merge dependabot PR
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Auto-merge dependabot PR
+        run: |
+          echo "All tests passed! Auto-merging dependabot PR #${{ github.event.pull_request.number }}"
+          gh pr merge ${{ github.event.pull_request.number }} --auto --squash --delete-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
