@@ -1,0 +1,8 @@
+name: 'GDPR Compliance'
+description: 'Installs and configures GDPR modules with table mapping for obfuscated database dumps.'
+type: 'Security recipe'
+install:
+  - gdpr
+  - anonymizer
+  - gdpr_dump
+  - checklistapi
