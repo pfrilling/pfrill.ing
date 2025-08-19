@@ -23,6 +23,7 @@
         "drupal/core-composer-scaffold": "^10.3",
         "drupal/core-project-message": "^10.3",
         "drupal/core-recommended": "^10.3",
+        "drupal/gdpr": "^3.1",
         "drupal/highlight_php": "^1.0",
         "drupal/layout_builder_modal": "^2.0",
         "drupal/layout_section_classes": "^1.6",
