@@ -47,6 +47,9 @@ jobs:
         mkdir -p ~/.ssh
         echo "$UPSUN_SSH_KEY" > ~/.ssh/upsun_key
         chmod 600 ~/.ssh/upsun_key
+        
+        # Start SSH agent and add key
+        eval "$(ssh-agent -s)"
         ssh-add ~/.ssh/upsun_key
 
     - name: Open SSH tunnel to MariaDB
