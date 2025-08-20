@@ -47,7 +47,9 @@ jobs:
         mkdir -p ~/.ssh
         echo "$UPSUN_SSH_KEY" > ~/.ssh/upsun_key
         chmod 600 ~/.ssh/upsun_key
-        ssh-add ~/.ssh/upsun_key
+
+        # Start SSH agent and add key in same shell context
+        eval "$(ssh-agent -s)" && ssh-add ~/.ssh/upsun_key
 
     - name: Open SSH tunnel to MariaDB
       env:
@@ -67,7 +69,7 @@ jobs:
         # Parse tunnel info to get database connection details
         # Extract connection details from the URL line: mysql://user:@127.0.0.1:30000/main
         DB_URL=$(grep -A 20 "mariadb:" tunnel_info.txt | grep "url:" | head -1 | awk '{print $2}' | tr -d "'")
-        
+
         # Parse the URL to extract components
         # Format: mysql://username:password@host:port/database
         DB_USER=$(echo $DB_URL | sed 's|mysql://||' | cut -d':' -f1)
