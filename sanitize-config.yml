@@ -1,10 +1,10 @@
 # Sanitize sensitive user data
 rewrite:
   users_field_data:
-    name: 'concat("Test User ",id)'
+    name: 'concat("Test User ", uid)'
     pass: '"$2y$10$dummy.hash.for.testing"'
-    mail: 'concat("user-",id, "@test.example.com")'
-    init: 'concat("user-",id, "@test.example.com")'
+    mail: 'concat("user-", uid, "@test.example.com")'
+    init: 'concat("user-", uid, "@test.example.com")'
   comment_field_data:
     name: 'REDACTED'
     mail: 'concat("user-", cid, "@test.example.com")'
