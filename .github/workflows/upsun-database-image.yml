@@ -42,18 +42,18 @@ jobs:
 
     - name: Setup SSH for Upsun
       env:
-        UPSUN_SSH_KEY: ${{ secrets.UPSUN_SSH_PRIVATE_KEY }}
+        UPSUN_SSH_KEY: ${{ secrets.UPSUN_SSH_KEY }}
       run: |
         mkdir -p ~/.ssh
-        
+
         # Write SSH key and ensure proper format
         echo "$UPSUN_SSH_KEY" > ~/.ssh/upsun_key
         chmod 600 ~/.ssh/upsun_key
-        
+
         # Verify key format and content
         echo "SSH key file size: $(wc -c < ~/.ssh/upsun_key)"
         echo "SSH key first line: $(head -1 ~/.ssh/upsun_key)"
-        
+
         # Start SSH agent and add key in same shell context
         eval "$(ssh-agent -s)" && ssh-add ~/.ssh/upsun_key
 
