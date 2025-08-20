@@ -1,0 +1,50 @@
+# Sanitize sensitive user data
+rewrite:
+  users_field_data:
+    name: 'concat("Test User ",id)'
+    pass: '"$2y$10$dummy.hash.for.testing"'
+    mail: 'concat("user-",id, "@test.example.com")'
+    init: 'concat("user-",id, "@test.example.com")'
+  comment_field_data:
+    name: 'REDACTED'
+    mail: 'concat("user-", cid, "@test.example.com")'
+    hostname: ''
+
+# Include structure but no data for large/sensitive tables
+nodata:
+  - batch
+  - cache_access_policy
+  - cache_bootstrap
+  - cache_config
+  - cache_container
+  - cache_data
+  - cache_default
+  - cache_discovery
+  - cache_dynamic_page_cache
+  - cache_entity
+  - cache_menu
+  - cache_page
+  - cache_render
+  - cache_toolbar
+  - cachetags
+  - flood
+  - queue
+  - semaphore
+  - sequences
+  - sessions
+  - watchdog
+
+## Filter data with WHERE clauses
+#where:
+#  orders: "created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)"
+#  user_activity: "user_id <= 1000"
+
+## Example of minifying data.
+#where:
+#  # Table: node_revision__body
+#  node_revision__body: |-
+#    revision_id IN (SELECT vid FROM node)
+#  # Table: paragraph_revision__body
+#  paragraph_revision__body: |-
+#    revision_id IN (SELECT revision_id FROM paragraphs_item)
+

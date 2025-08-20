@@ -5,5 +5,4 @@ recipes:
   - content_model
   - user_roles
   - performance
-  - gdpr
 #  - umami_analtics
