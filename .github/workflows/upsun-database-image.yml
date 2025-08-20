@@ -28,6 +28,10 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
+      UPSUN_CLI_TOKEN: ${{ secrets.UPSUN_API_TOKEN }}
+      UPSUN_CLI_NO_INTERACTION: 1
 
     steps:
     - name: Checkout repository
