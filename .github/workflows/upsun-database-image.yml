@@ -1,0 +1,211 @@
+name: Create Sanitized Database Image from Upsun MariaDB
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment_name:
+        description: 'Upsun Environment (e.g., main, staging)'
+        required: true
+        default: 'main'
+        type: string
+      database_name:
+        description: 'Database name to dump'
+        required: true
+        type: string
+      image_tag:
+        description: 'Tag for the database image'
+        required: true
+        default: 'latest'
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/database
+
+jobs:
+  create-database-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Upsun CLI
+      uses: upsun/action-cli@v1
+      with:
+        cli_provider: 'upsun'
+        cli_token: ${{ secrets.UPSUN_API_TOKEN }}
+        project_id: ${{ secrets.UPSUN_PROJECT_ID }}
+
+    - name: Setup SSH for Upsun
+      env:
+        UPSUN_SSH_KEY: ${{ secrets.UPSUN_SSH_PRIVATE_KEY }}
+      run: |
+        mkdir -p ~/.ssh
+        echo "$UPSUN_SSH_KEY" > ~/.ssh/upsun_key
+        chmod 600 ~/.ssh/upsun_key
+        ssh-add ~/.ssh/upsun_key
+
+    - name: Open SSH tunnel to MariaDB
+      env:
+        UPSUN_PROJECT_ID: ${{ secrets.UPSUN_PROJECT_ID }}
+        UPSUN_ENVIRONMENT: ${{ inputs.environment_name }}
+      run: |
+
+        # Open SSH tunnels to all services (including MariaDB)
+        upsun tunnel:open --project=$UPSUN_PROJECT_ID --environment=$UPSUN_ENVIRONMENT &
+
+        # Wait for tunnel to establish
+        sleep 10
+
+        # Get tunnel information and extract MariaDB connection details
+        upsun tunnel:info --project=$UPSUN_PROJECT_ID --environment=$UPSUN_ENVIRONMENT > tunnel_info.txt
+
+        # Parse tunnel info to get database connection details
+        # Extract connection details from the URL line: mysql://user:@127.0.0.1:30000/main
+        DB_URL=$(grep -A 20 "mariadb:" tunnel_info.txt | grep "url:" | head -1 | awk '{print $2}' | tr -d "'")
+        
+        # Parse the URL to extract components
+        # Format: mysql://username:password@host:port/database
+        DB_USER=$(echo $DB_URL | sed 's|mysql://||' | cut -d':' -f1)
+        DB_PASS=$(echo $DB_URL | sed 's|mysql://||' | cut -d':' -f2 | cut -d'@' -f1)
+        DB_HOST=$(echo $DB_URL | sed 's|.*@||' | cut -d':' -f1)
+        DB_PORT=$(echo $DB_URL | sed 's|.*@||' | cut -d':' -f2 | cut -d'/' -f1)
+        DB_NAME=$(echo $DB_URL | sed 's|.*/||')
+
+        echo "DATABASE_HOST=$DB_HOST" >> $GITHUB_ENV
+        echo "DATABASE_PORT=$DB_PORT" >> $GITHUB_ENV
+        echo "DATABASE_USER=$DB_USER" >> $GITHUB_ENV
+        echo "DATABASE_PASS=$DB_PASS" >> $GITHUB_ENV
+        echo "DATABASE_NAME_FROM_TUNNEL=$DB_NAME" >> $GITHUB_ENV
+
+        echo "SSH tunnel established on port $DB_PORT"
+
+    - name: Test database connectivity
+      run: |
+        # Wait a bit more for tunnel stability
+        sleep 5
+
+        # Test connection using MySQL client
+        mysql -h $DATABASE_HOST -P $DATABASE_PORT -u $DATABASE_USER -p$DATABASE_PASS -e "SHOW DATABASES;" || {
+          echo "Failed to connect to database through tunnel"
+          echo "Tunnel info:"
+          cat tunnel_info.txt
+          upsun tunnel:list
+          exit 1
+        }
+
+    - name: Create sanitized database dump using MTK
+      env:
+        DATABASE_NAME: ${{ inputs.database_name }}
+      run: |
+        # Use MTK Docker image to create sanitized dump
+        docker run --rm \
+          --network host \
+          -v $(pwd)/sanitize-config.yml:/config.yml \
+          -e MTK_HOSTNAME=$DATABASE_HOST \
+          -e MTK_USERNAME=$DATABASE_USER \
+          -e MTK_PASSWORD=$DATABASE_PASS \
+          -e MTK_PORT=$DATABASE_PORT \
+          -e MTK_CONFIG=/config.yml \
+          ghcr.io/skpr/mtk:v2.1.1 \
+          dump $DATABASE_NAME > sanitized_dump.sql
+
+        # Verify dump was created successfully
+        if [ ! -s sanitized_dump.sql ]; then
+          echo "Error: Sanitized dump file is empty or not created"
+          exit 1
+        fi
+
+        echo "Sanitized dump created successfully ($(wc -l < sanitized_dump.sql) lines)"
+
+    - name: Create database Docker image
+      run: |
+        # Create Dockerfile for database image
+        cat > Dockerfile <<EOF
+        FROM mariadb:10.11
+
+        # Copy the sanitized dump
+        COPY sanitized_dump.sql /docker-entrypoint-initdb.d/
+
+        # Set default environment variables
+        ENV MYSQL_ROOT_PASSWORD=root
+        ENV MYSQL_DATABASE=${{ inputs.database_name }}
+        ENV MYSQL_USER=testuser
+        ENV MYSQL_PASSWORD=testpass
+
+        # Add healthcheck
+        HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+          CMD mysqladmin ping -h localhost -u root -p\$MYSQL_ROOT_PASSWORD || exit 1
+
+        # Labels for better organization
+        LABEL org.opencontainers.image.source=https://github.com/${{ github.repository }}
+        LABEL org.opencontainers.image.description="Sanitized database image from Upsun MariaDB"
+        LABEL org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+        EOF
+
+        # Create .dockerignore
+        cat > .dockerignore <<EOF
+        .git
+        .github
+        tunnel_info.txt
+        sanitize-config.yml
+        EOF
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for Docker
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=raw,value=${{ inputs.image_tag }}
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=sha,prefix={{branch}}-
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        platforms: linux/amd64,linux/arm64
+
+    - name: Clean up
+      if: always()
+      run: |
+        # Close SSH tunnels
+        upsun tunnel:close --all || true
+
+        # Remove sensitive files
+        rm -f sanitized_dump.sql tunnel_info.txt sanitize-config.yml
+
+        # Remove SSH key
+        rm -f ~/.ssh/upsun_key
+
+    - name: Output image details
+      run: |
+        echo "✅ Database image created successfully!"
+        echo ""
+        echo "📦 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.image_tag }}"
+        echo ""
+        echo "🚀 To use this image:"
+        echo "docker run -d -p 3306:3306 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.image_tag }}"
+        echo ""
+        echo "🔗 Database connection:"
+        echo "Host: localhost"
+        echo "Port: 3306"
+        echo "Database: ${{ inputs.database_name }}"
+        echo "Username: testuser"
+        echo "Password: testpass"
+        echo "Root Password: root"
