@@ -145,9 +145,9 @@ jobs:
 
         # Set default environment variables
         ENV MYSQL_ROOT_PASSWORD=root
-        ENV MYSQL_DATABASE=${{ inputs.database_name }}
-        ENV MYSQL_USER=testuser
-        ENV MYSQL_PASSWORD=testpass
+        ENV MYSQL_DATABASE=db
+        ENV MYSQL_USER=db
+        ENV MYSQL_PASSWORD=db
 
         # Add healthcheck
         HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
@@ -220,7 +220,7 @@ jobs:
         echo "🔗 Database connection:"
         echo "Host: localhost"
         echo "Port: 3306"
-        echo "Database: ${{ inputs.database_name }}"
-        echo "Username: testuser"
-        echo "Password: testpass"
+        echo "Database: db"
+        echo "Username: db"
+        echo "Password: db"
         echo "Root Password: root"
