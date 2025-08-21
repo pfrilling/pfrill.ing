@@ -29,9 +29,9 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: main
-          MYSQL_USER: testuser
-          MYSQL_PASSWORD: testpass
+          MYSQL_DATABASE: db
+          MYSQL_USER: db
+          MYSQL_PASSWORD: db
         ports:
           - 3306:3306
     steps:
@@ -63,9 +63,9 @@ jobs:
           cat > web/sites/default/settings.local.php << 'EOF'
           <?php
           $databases['default']['default'] = [
-            'database' => 'main',
-            'username' => 'testuser',
-            'password' => 'testpass',
+            'database' => 'db',
+            'username' => 'db',
+            'password' => 'db',
             'prefix' => '',
             'host' => '127.0.0.1',
             'port' => '3306',

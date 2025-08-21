@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# ddev-description: Authenticate Docker with GitHub Container Registry
+# ddev-usage: ddev ghcr-login [token]
+# ddev-help: Examples:
+# ddev-help:   ddev ghcr-login                    # Interactive token input
+# ddev-help:   ddev ghcr-login ghp_xxxxxxxxxxxx   # Direct token input
+
+set -e
+
+if [ "$#" -eq 0 ]; then
+    echo "🔑 Authenticating with GitHub Container Registry..."
+    echo ""
+    echo "Please provide your GitHub Personal Access Token (PAT) with 'read:packages' permission."
+    echo "Create one at: https://github.com/settings/tokens"
+    echo ""
+    echo "Required permissions:"
+    echo "  - read:packages (to pull container images)"
+    echo ""
+    read -s -p "Enter your GitHub PAT: " TOKEN
+    echo ""
+else
+    TOKEN="$1"
+fi
+
+if [ -z "$TOKEN" ]; then
+    echo "❌ Error: No token provided"
+    exit 1
+fi
+
+echo "🔐 Logging in to GitHub Container Registry..."
+
+# Get GitHub username
+GITHUB_USER=$(git config github.user || git config user.name)
+if [ -z "$GITHUB_USER" ]; then
+    read -p "Enter your GitHub username: " GITHUB_USER
+fi
+
+# Login to GitHub Container Registry
+echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_USER" --password-stdin
+
+if [ $? -eq 0 ]; then
+    echo "✅ Successfully authenticated with GitHub Container Registry!"
+    echo ""
+    echo "You can now run:"
+    echo "  ddev restart"
+    echo ""
+    echo "This will pull and use your custom database image:"
+    echo "  ghcr.io/pfrilling/pfrill.ing/database:latest"
+else
+    echo "❌ Authentication failed. Please check your token and try again."
+    exit 1
+fi
