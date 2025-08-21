@@ -930,31 +930,11 @@ if (getenv('IS_DDEV_PROJECT') == 'true' && is_readable($ddev_settings)) {
 
   require $ddev_settings;
 
-  // Add our migration database connection.
-  // This will contain the original database.
-  $databases['legacydb']['default'] = [
-    'database' => 'legacydb',
-    'username' => 'legacydb',
-    'password' => 'legacydb',
-    'prefix' => '',
-    'host' => 'db',
-    'port' => 3306,
-    'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
-    'driver' => 'mysql',
-  ];
-}
-
-// Required for Github E2E tests.
-if (getenv('GITHUB_ACTIONS')) {
-  $databases['default']['default'] = [
-    'database' => 'drupal',
-    'username' => 'drupal',
-    'password' => 'drupal',
-    'host' => '127.0.0.1',
-    'port' => '3306',
-    'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
-    'driver' => 'mysql',
-  ];
+  // Adding the mtk database credentials.
+  $file_mtk = getenv('DDEV_COMPOSER_ROOT') . '/.ddev/settings.ddev-mtk.php';
+  if (file_exists($file_mtk)) {
+    include $file_mtk;
+  }
 }
 
 // Include the Redis settings file if available.
