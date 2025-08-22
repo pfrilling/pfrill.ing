@@ -105,7 +105,7 @@ test.describe('Home page and article navigation', () => {
 test.describe('Search feature', () => {
   test('search works for "Drupal"', async ({ page, baseURL }) => {
     const home = baseURL || '/';
-    const response = await page.goto(`${home}search/node?keys=drupal`, { waitUntil: 'domcontentloaded' });
+    const response = await page.goto(`${home}/search/node?keys=drupal`, { waitUntil: 'domcontentloaded' });
     expect(response, 'Search page should respond').toBeTruthy();
     expect(response!.ok(), `Search page should return OK: ${response && response.status()}`).toBeTruthy();
 

@@ -74,11 +74,6 @@ jobs:
           ];
           EOF
 
-      - name: Apply recipes and configuration
-        run: |
-          # Apply recipes to the existing database
-          ./vendor/bin/drush recipe ./recipes/essentials --yes || echo "Recipe application may have warnings"
-
       # @todo: Convert to script for reuse.
       - name: Run deployment script.
         run: |
@@ -127,6 +122,17 @@ jobs:
           path: |
             tests/playwright/playwright-report
             tests/playwright/test-results
+          if-no-files-found: ignore
+
+      - name: Upload visual regression artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-diffs
+          path: |
+            tests/playwright/test-results/**/*-actual.png
+            tests/playwright/test-results/**/*-diff.png
+            tests/playwright/test-results/**/visual-regression.spec.ts-snapshots
           if-no-files-found: ignore
 
   # Auto-merge dependabot PRs when tests pass
