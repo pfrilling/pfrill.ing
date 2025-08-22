@@ -77,6 +77,34 @@ export async function applyVisualTestStyling(page: Page): Promise<void> {
       .trigger {
         display: none !important;
       }
+
+      /* Hide code blocks with dynamic syntax highlighting */
+      pre,
+      code,
+      .highlight,
+      .syntax-highlight,
+      .language-php,
+      .language-js,
+      .language-css,
+      .language-html,
+      .hljs,
+      .prism,
+      .codehilite {
+        font-family: monospace !important;
+        color: #333 !important;
+        background-color: #f5f5f5 !important;
+      }
+
+      /* Remove syntax highlighting classes */
+      .highlight *,
+      .hljs *,
+      .prism *,
+      .codehilite * {
+        color: inherit !important;
+        background-color: transparent !important;
+        font-weight: normal !important;
+        font-style: normal !important;
+      }
     `
   });
 }
@@ -86,13 +114,16 @@ export async function applyVisualTestStyling(page: Page): Promise<void> {
  * and waiting for the page to stabilize.
  */
 export async function preparePageForVisual(page: Page): Promise<void> {
-  // Apply visual test styling to hide dynamic content
-  await applyVisualTestStyling(page);
-  
   // Wait for network to be idle to ensure all resources are loaded
   await page.waitForLoadState('networkidle');
   
-  // Wait a bit more for any remaining JavaScript execution
+  // Wait for any syntax highlighting or dynamic content to load
+  await page.waitForTimeout(1000);
+  
+  // Apply visual test styling to hide dynamic content
+  await applyVisualTestStyling(page);
+  
+  // Wait a bit more for styling to be applied
   await page.waitForTimeout(500);
 }
 
