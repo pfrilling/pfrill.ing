@@ -91,38 +91,13 @@ jobs:
           cache: 'npm'
           cache-dependency-path: tests/playwright/package-lock.json
 
-      - name: Get installed Playwright version
-        id: playwright-version
+      - name: Get package-lock hash for caching
+        id: package-lock-hash
         working-directory: tests/playwright
         run: |
-          # Try to get version from package-lock.json first
-          PLAYWRIGHT_VERSION=$(node -e "
-            try {
-              const pkg = require('./package-lock.json');
-              const version = pkg.packages?.['node_modules/@playwright/test']?.version ||
-                            pkg.dependencies?.['@playwright/test']?.version ||
-                            pkg.packages?.['']?.devDependencies?.['@playwright/test']?.replace('^', '') ||
-                            'unknown';
-              console.log(version);
-            } catch (e) {
-              console.log('unknown');
-            }
-          " 2>/dev/null)
-          
-          # Fallback to npm list if package-lock parsing failed
-          if [ "$PLAYWRIGHT_VERSION" = "unknown" ] || [ -z "$PLAYWRIGHT_VERSION" ]; then
-            PLAYWRIGHT_VERSION=$(npm list @playwright/test --depth=0 --json 2>/dev/null | node -e "
-              try {
-                const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
-                console.log(data.dependencies?.['@playwright/test']?.version || 'unknown');
-              } catch (e) {
-                console.log('unknown');
-              }
-            " 2>/dev/null || echo "unknown")
-          fi
-          
-          echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_ENV
-          echo "Detected Playwright version: $PLAYWRIGHT_VERSION"
+          PACKAGE_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
+          echo "PACKAGE_HASH=$PACKAGE_HASH" >> $GITHUB_ENV
+          echo "Package lock hash: $PACKAGE_HASH"
 
       - name: Cache playwright binaries
         uses: actions/cache@v4
@@ -130,7 +105,7 @@ jobs:
         with:
           path: |
             ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
+          key: ${{ runner.os }}-playwright-${{ env.PACKAGE_HASH }}
 
       - name: Install Playwright dependencies
         working-directory: tests/playwright
@@ -138,21 +113,18 @@ jobs:
           set -euxo pipefail
           npm ci
 
-      - name: Install Playwright browsers
+      - name: Install Playwright browsers and system dependencies
         working-directory: tests/playwright
         run: |
           set -euxo pipefail
-          echo "installing Playwright browsers"
-          npx playwright install --with-deps
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-
-      - name: Install Playwright system dependencies
-        working-directory: tests/playwright
-        run: |
-          set -euxo pipefail
-          echo "installing Playwright system dependencies"
-          npx playwright install-deps
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" == "true" ]; then
+            echo "Playwright browsers restored from cache"
+            echo "Installing only system dependencies"
+            npx playwright install-deps
+          else
+            echo "Installing Playwright browsers and system dependencies"
+            npx playwright install --with-deps
+          fi
 
       - name: Run Playwright tests against feature env
         working-directory: tests/playwright
