@@ -87,6 +87,7 @@ export async function applyVisualTestStyling(page: Page): Promise<void> {
       .language-js,
       .language-css,
       .language-html,
+      .language-plaintext,
       .hljs,
       .prism,
       .codehilite {
@@ -116,13 +117,13 @@ export async function applyVisualTestStyling(page: Page): Promise<void> {
 export async function preparePageForVisual(page: Page): Promise<void> {
   // Wait for network to be idle to ensure all resources are loaded
   await page.waitForLoadState('networkidle');
-  
+
   // Wait for any syntax highlighting or dynamic content to load
   await page.waitForTimeout(1000);
-  
+
   // Apply visual test styling to hide dynamic content
   await applyVisualTestStyling(page);
-  
+
   // Wait a bit more for styling to be applied
   await page.waitForTimeout(500);
 }
@@ -136,13 +137,13 @@ export const visualTestConfig = {
     fullPage: true,
     animations: 'disabled' as const,
   },
-  
+
   // Comparison options
   comparison: {
     maxDiffPixels: 100,
     threshold: 0.2,
   },
-  
+
   // Timeout options
   timeout: {
     screenshot: 10000,
