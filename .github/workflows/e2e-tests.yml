@@ -94,7 +94,35 @@ jobs:
       - name: Get installed Playwright version
         id: playwright-version
         working-directory: tests/playwright
-        run: echo "PLAYWRIGHT_VERSION=$(node -e "console.log(require('./package-lock.json').dependencies['@playwright/test'].version)")" >> $GITHUB_ENV
+        run: |
+          # Try to get version from package-lock.json first
+          PLAYWRIGHT_VERSION=$(node -e "
+            try {
+              const pkg = require('./package-lock.json');
+              const version = pkg.packages?.['node_modules/@playwright/test']?.version ||
+                            pkg.dependencies?.['@playwright/test']?.version ||
+                            pkg.packages?.['']?.devDependencies?.['@playwright/test']?.replace('^', '') ||
+                            'unknown';
+              console.log(version);
+            } catch (e) {
+              console.log('unknown');
+            }
+          " 2>/dev/null)
+          
+          # Fallback to npm list if package-lock parsing failed
+          if [ "$PLAYWRIGHT_VERSION" = "unknown" ] || [ -z "$PLAYWRIGHT_VERSION" ]; then
+            PLAYWRIGHT_VERSION=$(npm list @playwright/test --depth=0 --json 2>/dev/null | node -e "
+              try {
+                const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
+                console.log(data.dependencies?.['@playwright/test']?.version || 'unknown');
+              } catch (e) {
+                console.log('unknown');
+              }
+            " 2>/dev/null || echo "unknown")
+          fi
+          
+          echo "PLAYWRIGHT_VERSION=$PLAYWRIGHT_VERSION" >> $GITHUB_ENV
+          echo "Detected Playwright version: $PLAYWRIGHT_VERSION"
 
       - name: Cache playwright binaries
         uses: actions/cache@v4
