@@ -113,8 +113,18 @@ jobs:
           set -euxo pipefail
           npm ci
 
-      - run: npx playwright install --with-deps
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
+      - name: Install Playwright browsers and system dependencies
+        working-directory: tests/playwright
+        run: |
+          set -euxo pipefail
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" == "true" ]; then
+            echo "Playwright browsers restored from cache"
+            echo "Installing only system dependencies"
+            npx playwright install-deps
+          else
+            echo "Installing Playwright browsers and system dependencies"
+            npx playwright install --with-deps
+          fi
 
       - name: Run Playwright tests against feature env
         working-directory: tests/playwright
