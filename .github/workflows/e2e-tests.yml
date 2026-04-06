@@ -74,11 +74,6 @@ jobs:
           ];
           EOF
 
-      - name: Apply recipes and configuration
-        run: |
-          # Apply recipes to the existing database
-          ./vendor/bin/drush recipe ./recipes/essentials --yes || echo "Recipe application may have warnings"
-
       # @todo: Convert to script for reuse.
       - name: Run deployment script.
         run: |
@@ -86,6 +81,7 @@ jobs:
           ./vendor/bin/drush cache:rebuild --yes
           ./vendor/bin/drush deploy:hook --yes
           ./vendor/bin/drush recipe ./recipes/essentials --yes
+          ./vendor/bin/drush cache:rebuild --yes
           ./vendor/bin/drush serve &
 
       - name: Install Node.js
@@ -95,18 +91,40 @@ jobs:
           cache: 'npm'
           cache-dependency-path: tests/playwright/package-lock.json
 
+      - name: Get package-lock hash for caching
+        id: package-lock-hash
+        working-directory: tests/playwright
+        run: |
+          PACKAGE_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
+          echo "PACKAGE_HASH=$PACKAGE_HASH" >> $GITHUB_ENV
+          echo "Package lock hash: $PACKAGE_HASH"
+
+      - name: Cache playwright binaries
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ env.PACKAGE_HASH }}
+
       - name: Install Playwright dependencies
         working-directory: tests/playwright
         run: |
           set -euxo pipefail
           npm ci
 
-      - name: Install Playwright browsers
+      - name: Install Playwright browsers and system dependencies
         working-directory: tests/playwright
         run: |
           set -euxo pipefail
-          echo "installing Playwright browsers"
-          npx playwright install --with-deps
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" == "true" ]; then
+            echo "Playwright browsers restored from cache"
+            echo "Installing only system dependencies"
+            npx playwright install-deps
+          else
+            echo "Installing Playwright browsers and system dependencies"
+            npx playwright install --with-deps
+          fi
 
       - name: Run Playwright tests against feature env
         working-directory: tests/playwright
@@ -127,6 +145,17 @@ jobs:
           path: |
             tests/playwright/playwright-report
             tests/playwright/test-results
+          if-no-files-found: ignore
+
+      - name: Upload visual regression artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-diffs
+          path: |
+            tests/playwright/test-results/**/*-actual.png
+            tests/playwright/test-results/**/*-diff.png
+            tests/playwright/test-results/**/visual-regression.spec.ts-snapshots
           if-no-files-found: ignore
 
   # Auto-merge dependabot PRs when tests pass

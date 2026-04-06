@@ -6,6 +6,7 @@
 # ddev-help:   ddev e2e --headed        # Headed mode using DDEV Node.js
 # ddev-help:   ddev e2e --ui            # Playwright UI mode using DDEV Node.js
 # ddev-help:   ddev e2e --install       # Ensure npm deps and Playwright browsers are installed first
+# ddev-help:   ddev e2e --update-snapshots  # Update visual regression baselines
 
 set -euo pipefail
 
@@ -54,7 +55,7 @@ if $DO_INSTALL; then
   ddev exec "cd $PLAYWRIGHT_DIR && npx playwright@latest install --with-deps"
 fi
 
-# Pass through remaining args to Playwright (e.g., --headed, --ui)
+# Pass through remaining args to Playwright (e.g., --headed, --ui, --update-snapshots)
 ARGS=("$@")
 
 # Check if we need to run with GUI (headed or UI mode)
