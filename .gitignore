@@ -43,5 +43,6 @@
 .idea
 /tests/playwright/node_modules/
 /tests/playwright/test-results/
+/tests/playwright/playwright-report/
 /.ddev/.env
 /.ddev/.env.web
