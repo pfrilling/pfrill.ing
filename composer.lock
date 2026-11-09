@@ -1682,27 +1682,27 @@
         },
         {
             "name": "drupal/highlight_php",
-            "version": "1.0.4",
+            "version": "1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://git.drupalcode.org/project/highlight_php.git",
-                "reference": "1.0.4"
+                "reference": "1.1.0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://ftp.drupal.org/files/projects/highlight_php-1.0.4.zip",
-                "reference": "1.0.4",
-                "shasum": "43e46271236c1d55ff5f091530bb990bc2603f44"
+                "url": "https://ftp.drupal.org/files/projects/highlight_php-1.1.0.zip",
+                "reference": "1.1.0",
+                "shasum": "a190a4762f7aac88f7863bda17acb2949088f3da"
             },
             "require": {
-                "drupal/core": "^10 || ^11",
+                "drupal/core": "^10.3 || ^11 || ^12",
                 "scrivo/highlight.php": "^9.17"
             },
             "type": "drupal-module",
             "extra": {
                 "drupal": {
-                    "version": "1.0.4",
-                    "datestamp": "1733640766",
+                    "version": "1.1.0",
+                    "datestamp": "1793461185",
                     "security-coverage": {
                         "status": "covered",
                         "message": "Covered by Drupal's security advisory policy"
